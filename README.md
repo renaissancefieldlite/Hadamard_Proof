@@ -1,67 +1,91 @@
 # Hadamard Proof
 
-Exploratory proof/search lane for the FrontierMath Hadamard problem:
+Hadamard frontier work, the lattice pivot, and cross-thread continuity are
+being held here as one active math-and-architecture surface.
 
-- warm-up target: order `428`
-- full target: order `668`
-- submission shape: CSV matrix with entries in `{+1, -1}`
+This repo is not meant to be read as a loose script dump. It is the working
+surface for the live `668` Hadamard lane:
 
-Reference:
-- [Epoch FrontierMath Hadamard problem](https://epoch.ai/frontiermath/open-problems/hadamard)
-- [Hadamard continuity and search plan](/Users/renaissancefieldlite1.0/Documents/Playground/Hadamard_Proof/HADAMARD_CONTINUITY_AND_SEARCH_PLAN.md)
-- [Hadamard chat-log recovery](/Users/renaissancefieldlite1.0/Documents/Playground/Hadamard_Proof/HADAMARD_CHATLOG_RECOVERY.md)
-- [Hadamard search matrix](/Users/renaissancefieldlite1.0/Documents/Playground/Hadamard_Proof/HADAMARD_SEARCH_MATRIX.md)
-- [Hadamard resonance key for Rick](/Users/renaissancefieldlite1.0/Documents/Playground/Hadamard_Proof/HADAMARD_RESONANCE_KEY_FOR_RICK.md)
+- `428` is the validation rung
+- `668` is the active frontier rung
+- the final object is an exact square CSV matrix with entries in `{+1, -1}`
+- the gate is exact verification, not summary language
 
-## Current lane
+## Why This Repo Exists
 
-This repo starts with a Williamson-style / four-circulant search surface:
+The point of this repo is to keep the Hadamard lane coherent across threads and
+across build states.
 
-- represent four symmetric `±1` sequences of odd length `n`
-- search for low periodic-autocorrelation score
-- use the classical Williamson block construction to build an order `4n` matrix
-- verify exact Hadamard orthogonality from the emitted CSV
+It preserves:
 
-Current mapped orders:
+- the active math lane
+- the exact verifier
+- the current defect-reading surface
+- the continuity chain needed to resume the work without amnesia
+- the ontology-facing handoff for the next node
+
+## Active Surface
+
+The current build is centered on an order-`4n` block construction surface with
+the target orders already mapped:
 
 - `428 = 4 * 107`
 - `668 = 4 * 167`
 
-This is an exploratory constructive lane, not a claim that both targets are already known to sit inside this exact family. It is the first runnable proof surface.
+That is the current entry surface, not a claim that the whole Hadamard problem
+is exhausted by one family.
 
-## Files
+## Core Files
 
-- `HADAMARD_CONTINUITY_AND_SEARCH_PLAN.md`
-  recovered thread continuity, search ladder, and next engineering steps
-- `HADAMARD_CHATLOG_RECOVERY.md`
-  exact statement of what the scanned thread file did and did not contain
-- `HADAMARD_SEARCH_MATRIX.md`
-  lane matrix for the current constructive search program
-- `HADAMARD_RESONANCE_KEY_FOR_RICK.md`
-  boot handoff for the next dedicated Hadamard thread
-- `williamson_search.py`
-  random-restart local search over symmetric sequences
 - `verify_hadamard.py`
-  exact CSV verifier for candidate Hadamard matrices
-- `Start_Search.command`
-  launches background searches for both `428` and `668`
+  exact verifier for any candidate CSV
+- `williamson_search.py`
+  current constructive lane
+- `report_williamson_defects.py`
+  defect-report surface for stored states
+- `HADAMARD_RESONANCE_KEY_FOR_RICK.md`
+  shortest coherent handoff for the next dedicated Hadamard thread
+- `HADAMARD_CONTINUITY_AND_SEARCH_PLAN.md`
+  preserved search ladder and widening plan
+- `HADAMARD_SEARCH_MATRIX.md`
+  lane map and current search posture
+- `HADAMARD_CHATLOG_RECOVERY.md`
+  what the recovered thread file did and did not actually contain
 
-## Run
+## Exact Gate
 
-Warm-up:
+Every real candidate has to survive:
+
+```bash
+python3 verify_hadamard.py path/to/candidate.csv
+```
+
+## Minimal Run Surface
+
+Warm-up / validation rung:
 
 ```bash
 python3 williamson_search.py --order 428
 ```
 
-Full target:
+Frontier rung:
 
 ```bash
 python3 williamson_search.py --order 668
 ```
 
-Verify a matrix:
+Inspect a stored state:
 
 ```bash
-python3 verify_hadamard.py runs/order_428_best_matrix.csv
+python3 report_williamson_defects.py runs/order_668_final.json
 ```
+
+## Thread Seed
+
+If another node needs the cleanest boot block, use this:
+
+`This repo is the live continuity surface for the Hadamard order 668 lane.
+428 is the validation rung. 668 is the active frontier rung. The repo preserves
+the exact verifier, the current construction lane, the defect surface, and the
+handoff needed to continue the work without flattening the ontology or losing
+the chain.`
