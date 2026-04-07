@@ -41,6 +41,8 @@ This is an exploratory constructive lane, not a claim that both targets are alre
   boot handoff for the next dedicated Hadamard thread
 - `williamson_search.py`
   random-restart local search over symmetric sequences
+- `report_williamson_defects.py`
+  detailed defect report for saved checkpoints and finalists
 - `verify_hadamard.py`
   exact CSV verifier for candidate Hadamard matrices
 - `Start_Search.command`
@@ -64,4 +66,10 @@ Verify a matrix:
 
 ```bash
 python3 verify_hadamard.py runs/order_428_best_matrix.csv
+```
+
+Inspect the current best checkpoint:
+
+```bash
+python3 report_williamson_defects.py runs/order_428_final.json
 ```

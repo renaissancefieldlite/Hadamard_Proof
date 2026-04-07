@@ -67,6 +67,15 @@ From the latest saved runs now present in `runs/`:
 - order `428`: `best_score = 10304` at step `1500`
 - order `668`: `best_score = 21888` at step `1500`
 
+The refreshed defect tooling now shows, for the saved `428` baseline:
+
+- `periodic_score = 10304`
+- `row_sum_penalty = 0`
+- `max_shift_violation = 24`
+
+That means the current best `428` lane is no longer blocked by row-sum balance.
+It is now primarily a periodic-autocorrelation defect problem.
+
 That means the present lane is producing structure, but it is not yet close to
 an exact solution. We should treat it as a valid first surface, not the whole
 search program.
@@ -194,6 +203,10 @@ Add a utility that reports:
 
 This gives the search a shape to push against instead of only one aggregate
 number.
+
+That utility now exists as:
+
+- [report_williamson_defects.py](/Users/renaissancefieldlite1.0/Documents/Playground/Hadamard_Proof/report_williamson_defects.py)
 
 ### Step 4: Add a second search engine
 

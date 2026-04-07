@@ -27,6 +27,7 @@ and next moves.
 The current repo already gives us:
 
 - a runnable search engine: `williamson_search.py`
+- a checkpoint-level defect reporter: `report_williamson_defects.py`
 - an exact verifier: `verify_hadamard.py`
 - target orders wired correctly: `428`, `668`
 - a continuity plan describing why the current lane is only the first surface
@@ -67,6 +68,12 @@ Fresh baseline artifacts already created:
 - `runs/order_428_final.json`
 - `runs/order_668_latest.json`
 - `runs/order_668_final.json`
+
+Fresh qualitative read from the current `428` baseline:
+
+- row-sum regime is already satisfied (`row_sum_penalty = 0`)
+- the remaining defect mass is periodic
+- next search improvements should prioritize shift-cancellation pressure over row-sum tuning
 
 ## Why This File Exists
 
