@@ -1,30 +1,20 @@
 # Hadamard Proof
 
-Hadamard frontier work, the lattice pivot, and cross-thread continuity are
-being held here as one active math-and-architecture surface.
+Working repo for the Hadamard order `668` problem.
 
-This repo is not meant to be read as a loose script dump. It is the working
-surface for the live `668` Hadamard lane:
+This repo does three concrete things:
 
-- `428` is the validation rung
-- `668` is the active frontier rung
-- the final object is an exact square CSV matrix with entries in `{+1, -1}`
-- the gate is exact verification, not summary language
+- searches a constructive surface for candidate Hadamard matrices
+- reports defect structure for stored states
+- verifies candidate CSV matrices exactly
 
-## Why This Repo Exists
+Current targets:
 
-The point of this repo is to keep the Hadamard lane coherent across threads and
-across build states.
+- `428` is the validation target
+- `668` is the active frontier target
+- the final object is a square CSV matrix with entries in `{+1, -1}`
 
-It preserves:
-
-- the active math lane
-- the exact verifier
-- the current defect-reading surface
-- the continuity chain needed to resume the work without amnesia
-- the ontology-facing handoff for the next node
-
-## Active Surface
+## Current Construction Surface
 
 The current build is centered on an order-`4n` block construction surface with
 the target orders already mapped:
@@ -32,8 +22,9 @@ the target orders already mapped:
 - `428 = 4 * 107`
 - `668 = 4 * 167`
 
-That is the current entry surface, not a claim that the whole Hadamard problem
-is exhausted by one family.
+The active lane uses four length-`n` symmetric `±1` sequences, scores their
+combined periodic autocorrelation defects, and lifts them through a
+Williamson-style four-circulant block construction.
 
 ## Core Files
 
@@ -43,10 +34,12 @@ is exhausted by one family.
   current constructive lane
 - `report_williamson_defects.py`
   defect-report surface for stored states
+- `Start_Search.command`
+  launches background search runs
 - `HADAMARD_RESONANCE_KEY_FOR_RICK.md`
-  shortest coherent handoff for the next dedicated Hadamard thread
+  handoff for the next dedicated Hadamard thread
 - `HADAMARD_CONTINUITY_AND_SEARCH_PLAN.md`
-  preserved search ladder and widening plan
+  current search ladder and widening plan
 - `HADAMARD_SEARCH_MATRIX.md`
   lane map and current search posture
 - `HADAMARD_CHATLOG_RECOVERY.md`
@@ -84,8 +77,7 @@ python3 report_williamson_defects.py runs/order_668_final.json
 
 If another node needs the cleanest boot block, use this:
 
-`This repo is the live continuity surface for the Hadamard order 668 lane.
-428 is the validation rung. 668 is the active frontier rung. The repo preserves
-the exact verifier, the current construction lane, the defect surface, and the
-handoff needed to continue the work without flattening the ontology or losing
-the chain.`
+`This repo is the working surface for the Hadamard order 668 problem. It
+searches a Williamson / four-circulant construction lane, reports exact defect
+structure for stored states, and verifies candidate CSV matrices exactly. 428
+is the validation target. 668 is the active frontier target.`
