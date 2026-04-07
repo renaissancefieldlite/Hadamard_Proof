@@ -69,6 +69,14 @@ class CandidateMetrics:
     top_shift_violations: list[dict[str, int]]
 
 
+@dataclass
+class EliteEntry:
+    score: int
+    step: int
+    free_state: np.ndarray
+    metrics: CandidateMetrics
+
+
 def summarize_shift_violations(combined: np.ndarray, limit: int = 8) -> list[dict[str, int]]:
     violations = [
         {"shift": int(shift), "value": int(combined[shift]), "abs_value": int(abs(combined[shift]))}
@@ -123,10 +131,83 @@ def expand_sequences(free_state: np.ndarray, n: int) -> list[np.ndarray]:
     return seqs
 
 
-def score_candidate(free_state: np.ndarray, n: int) -> tuple[int, list[np.ndarray]]:
+def evaluate_candidate(free_state: np.ndarray, n: int) -> tuple[list[np.ndarray], CandidateMetrics]:
     seqs = expand_sequences(free_state, n)
     metrics = candidate_metrics(seqs, n)
+    return seqs, metrics
+
+
+def score_candidate(free_state: np.ndarray, n: int) -> tuple[int, list[np.ndarray]]:
+    seqs, metrics = evaluate_candidate(free_state, n)
     return metrics.total_score, seqs
+
+
+def state_signature(state: np.ndarray) -> bytes:
+    return state.tobytes()
+
+
+def sample_flip_count(rng: np.random.Generator, max_flips: int) -> int:
+    if max_flips <= 1:
+        return 1
+    counts = np.arange(1, max_flips + 1, dtype=np.int64)
+    weights = counts[::-1].astype(np.float64)
+    weights /= weights.sum()
+    return int(rng.choice(counts, p=weights))
+
+
+def mutate_state(base_state: np.ndarray, rng: np.random.Generator, max_flips: int) -> np.ndarray:
+    trial = base_state.copy()
+    flip_count = min(sample_flip_count(rng, max_flips), trial.size)
+    flat_indices = rng.choice(trial.size, size=flip_count, replace=False)
+    rows, cols = np.unravel_index(flat_indices, trial.shape)
+    trial[rows, cols] *= -1
+    return trial
+
+
+def push_elite(
+    elites: list[EliteEntry],
+    state: np.ndarray,
+    metrics: CandidateMetrics,
+    step: int,
+    elite_size: int,
+) -> None:
+    if elite_size <= 0:
+        return
+
+    signature = state_signature(state)
+    for existing in elites:
+        if state_signature(existing.free_state) == signature:
+            return
+
+    elites.append(
+        EliteEntry(
+            score=metrics.total_score,
+            step=step,
+            free_state=state.copy(),
+            metrics=metrics,
+        )
+    )
+    elites.sort(key=lambda entry: (entry.score, entry.metrics.max_shift_violation, entry.step))
+    del elites[elite_size:]
+
+
+def elite_score_histogram(elites: list[EliteEntry]) -> list[int]:
+    return [entry.score for entry in elites]
+
+
+def select_restart_base(
+    rng: np.random.Generator,
+    elites: list[EliteEntry],
+    best_state: np.ndarray,
+) -> np.ndarray:
+    if not elites:
+        return best_state
+
+    top_k = min(len(elites), 4)
+    weights = np.arange(top_k, 0, -1, dtype=np.float64)
+    weights /= weights.sum()
+    choice = int(rng.choice(np.arange(top_k), p=weights))
+    return elites[choice].free_state
 
 
 def checkpoint_payload(
@@ -144,6 +225,10 @@ def checkpoint_payload(
     uphill_accepts: int,
     rejected_moves: int,
     temperature: float,
+    elites: list[EliteEntry],
+    restart_count: int,
+    last_restart_step: int,
+    stalled_steps: int,
 ) -> dict:
     total_decisions = accepted_moves + rejected_moves
     acceptance_rate = accepted_moves / total_decisions if total_decisions else 0.0
@@ -162,6 +247,10 @@ def checkpoint_payload(
         "rejected_moves": rejected_moves,
         "acceptance_rate": round(acceptance_rate, 6),
         "uphill_acceptance_rate": round(uphill_acceptance_rate, 6),
+        "restart_count": restart_count,
+        "last_restart_step": last_restart_step,
+        "stalled_steps": stalled_steps,
+        "elite_scores": elite_score_histogram(elites),
         "current_score": int(current_score),
         "current_metrics": asdict(current_metrics),
         "best_score": int(best_score),
@@ -181,6 +270,10 @@ class SearchConfig:
     checkpoint_every: int
     temp_start: float
     temp_end: float
+    max_flips: int
+    elite_size: int
+    restart_every: int
+    restart_perturb: int
 
 
 def checkpoint(run_dir: Path, label: str, payload: dict) -> None:
@@ -198,6 +291,10 @@ def main() -> int:
     parser.add_argument("--checkpoint-every", type=int, default=100)
     parser.add_argument("--temp-start", type=float, default=1.5)
     parser.add_argument("--temp-end", type=float, default=0.02)
+    parser.add_argument("--max-flips", type=int, default=3)
+    parser.add_argument("--elite-size", type=int, default=8)
+    parser.add_argument("--restart-every", type=int, default=250)
+    parser.add_argument("--restart-perturb", type=int, default=5)
     args = parser.parse_args()
 
     cfg = SearchConfig(
@@ -209,6 +306,10 @@ def main() -> int:
         checkpoint_every=args.checkpoint_every,
         temp_start=args.temp_start,
         temp_end=args.temp_end,
+        max_flips=max(1, args.max_flips),
+        elite_size=max(1, args.elite_size),
+        restart_every=max(0, args.restart_every),
+        restart_perturb=max(1, args.restart_perturb),
     )
 
     run_dir = Path("runs")
@@ -217,16 +318,21 @@ def main() -> int:
     rng = np.random.default_rng(cfg.seed)
     m = independent_size(cfg.n)
     free_state = rng.choice(np.array([-1, 1], dtype=np.int8), size=(4, m))
-    current_score, current_seqs = score_candidate(free_state, cfg.n)
-    current_metrics = candidate_metrics(current_seqs, cfg.n)
+    current_seqs, current_metrics = evaluate_candidate(free_state, cfg.n)
+    current_score = current_metrics.total_score
     best_state = free_state.copy()
     best_score = current_score
     best_seqs = [seq.copy() for seq in current_seqs]
     best_metrics = current_metrics
     best_step = 0
+    elites: list[EliteEntry] = []
+    push_elite(elites, best_state, best_metrics, best_step, cfg.elite_size)
     accepted_moves = 0
     uphill_accepts = 0
     rejected_moves = 0
+    restart_count = 0
+    last_restart_step = 0
+    stalled_steps = 0
     start = time.time()
 
     print(f"Hadamard Williamson search | order={cfg.order} | n={cfg.n}")
@@ -236,19 +342,32 @@ def main() -> int:
         progress = (step - 1) / max(1, cfg.steps - 1)
         temperature = cfg.temp_start * ((cfg.temp_end / cfg.temp_start) ** progress)
 
+        if cfg.restart_every > 0 and step > 1 and step % cfg.restart_every == 0:
+            restart_base = select_restart_base(rng, elites, best_state)
+            free_state = mutate_state(restart_base, rng, cfg.restart_perturb)
+            current_seqs, current_metrics = evaluate_candidate(free_state, cfg.n)
+            current_score = current_metrics.total_score
+            restart_count += 1
+            last_restart_step = step
+            print(
+                f"[step {step}] restart current={current_score} "
+                f"best={best_score} elite_best={elites[0].score}"
+            )
+
         best_trial_state = None
         best_trial_score = None
+        best_trial_seqs = None
+        best_trial_metrics = None
 
         for _ in range(cfg.batch):
-            trial = free_state.copy()
-            seq_idx = int(rng.integers(0, 4))
-            bit_idx = int(rng.integers(0, m))
-            trial[seq_idx, bit_idx] *= -1
-
-            trial_score, _ = score_candidate(trial, cfg.n)
+            trial = mutate_state(free_state, rng, cfg.max_flips)
+            trial_seqs, trial_metrics = evaluate_candidate(trial, cfg.n)
+            trial_score = trial_metrics.total_score
             if best_trial_score is None or trial_score < best_trial_score:
                 best_trial_score = trial_score
                 best_trial_state = trial
+                best_trial_seqs = trial_seqs
+                best_trial_metrics = trial_metrics
 
         accept = False
         if best_trial_score is not None:
@@ -263,8 +382,9 @@ def main() -> int:
                 uphill_accepts += 1
             accepted_moves += 1
             free_state = best_trial_state
-            current_score, current_seqs = score_candidate(free_state, cfg.n)
-            current_metrics = candidate_metrics(current_seqs, cfg.n)
+            current_score = int(best_trial_score)
+            current_seqs = best_trial_seqs
+            current_metrics = best_trial_metrics
         else:
             rejected_moves += 1
 
@@ -274,6 +394,8 @@ def main() -> int:
             best_seqs = [seq.copy() for seq in current_seqs]
             best_metrics = current_metrics
             best_step = step
+            stalled_steps = 0
+            push_elite(elites, best_state, best_metrics, best_step, cfg.elite_size)
             print(f"[step {step}] new best score={best_score}")
 
             if best_score == 0:
@@ -281,6 +403,10 @@ def main() -> int:
                 matrix_path = run_dir / f"order_{cfg.order}_best_matrix.csv"
                 save_csv_matrix(matrix_path, matrix)
                 print(f"score 0 candidate written to {matrix_path}")
+        else:
+            stalled_steps += 1
+            if best_trial_state is not None and best_trial_metrics is not None:
+                push_elite(elites, best_trial_state, best_trial_metrics, step, cfg.elite_size)
 
         if step % cfg.checkpoint_every == 0 or step == 1:
             payload = checkpoint_payload(
@@ -297,6 +423,10 @@ def main() -> int:
                 uphill_accepts=uphill_accepts,
                 rejected_moves=rejected_moves,
                 temperature=temperature,
+                elites=elites,
+                restart_count=restart_count,
+                last_restart_step=last_restart_step,
+                stalled_steps=stalled_steps,
             )
             checkpoint(run_dir, f"order_{cfg.order}_latest.json", payload)
             print(
@@ -304,6 +434,8 @@ def main() -> int:
                 f"periodic={current_metrics.periodic_score} "
                 f"row_penalty={current_metrics.row_sum_penalty} "
                 f"max_shift={current_metrics.max_shift_violation} "
+                f"elite_best={elites[0].score} "
+                f"restarts={restart_count} "
                 f"elapsed={time.time() - start:.1f}s"
             )
 
@@ -321,6 +453,10 @@ def main() -> int:
         uphill_accepts=uphill_accepts,
         rejected_moves=rejected_moves,
         temperature=cfg.temp_end,
+        elites=elites,
+        restart_count=restart_count,
+        last_restart_step=last_restart_step,
+        stalled_steps=stalled_steps,
     )
     checkpoint(run_dir, f"order_{cfg.order}_final.json", payload)
     print(f"done | best_score={best_score}")

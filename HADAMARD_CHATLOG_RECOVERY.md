@@ -86,3 +86,10 @@ This file does **not** give us:
 
 Those pieces have to come from the existing `Hadamard_Proof` repo state and
 the dedicated new thread, not from this chat export.
+
+The benchmark facts now supplied separately from the Epoch problem page should
+therefore be treated as a second input alongside this recovery note:
+
+- the chat export gives posture
+- the Epoch brief gives benchmark facts
+- the repo gives the runnable search surface

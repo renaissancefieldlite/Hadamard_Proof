@@ -6,8 +6,8 @@ This lane is pointed at the [Epoch FrontierMath Hadamard problem](https://epoch.
 
 Current targets already wired into this repo:
 
-- warm-up target: order `428`
-- full target: order `668`
+- warm-up / validation target: order `428`
+- full frontier target: order `668`
 - submission shape: square CSV matrix with entries in `{+1, -1}`
 
 The current repo encodes the factorization already in use:
@@ -17,6 +17,29 @@ The current repo encodes the factorization already in use:
 
 That is why the present search lane is built around four sequences of length
 `107` or `167` and then lifted into an order `4n` candidate matrix.
+
+## Epoch Benchmark Facts Supplied In-Thread
+
+The user also supplied the text of the Epoch problem page directly in-thread.
+That gives the benchmark frame we should now treat as authoritative for this
+repo's orientation:
+
+- order `668` is the open target
+- order `428` is a warm-up because it is already known
+- the page states that the previous smallest unknown case, `428`, was resolved
+  in `2004` by Kharaghani and Tayfeh-Rezaie
+- the final requested output is a CSV matrix
+- the listed AI results say `GPT-5.2 Pro` solved the warm-up but not the full
+  target
+
+Operational consequence:
+
+- order `428` should now be treated primarily as a toolchain-validation and
+  construction-recovery benchmark
+- order `668` remains the actual frontier solve target
+
+This matters because "find a valid 428 matrix" and "solve the open 668 case"
+are not the same claim.
 
 ## Continuity Recovered From This Thread
 
@@ -37,6 +60,13 @@ conversation, so the Hadamard continuity here is being rebuilt from:
 - the live thread continuity
 - this repo's existing code and runs
 - the local Playground log/report chain
+
+The thread plus the supplied Epoch page now jointly establish the clean split:
+
+- chat-log continuity contributes benchmark posture and artifact discipline
+- Epoch benchmark facts pin which target is validation work and which target is
+  genuine frontier novelty
+- repo code and runs supply the current mathematical starting surface
 
 ## Current Repo State
 
@@ -64,7 +94,8 @@ four symmetric sequences. At each step it:
 
 From the latest saved runs now present in `runs/`:
 
-- order `428`: `best_score = 10304` at step `1500`
+- order `428`: `best_score = 10304` with best found at step `80` in the saved
+  short baseline
 - order `668`: `best_score = 21888` at step `1500`
 
 The refreshed defect tooling now shows, for the saved `428` baseline:
@@ -80,7 +111,44 @@ That means the present lane is producing structure, but it is not yet close to
 an exact solution. We should treat it as a valid first surface, not the whole
 search program.
 
-## What Must Be True For A Real Solution
+Because `428` is a known case, this heuristic lane should now be read as a
+constructive search surface and diagnostics surface, not as the only sensible
+way to validate the warm-up benchmark.
+
+## 2026-04-07 Lane 01 Upgrade Result
+
+The current `lane_01` search engine has now been hardened beyond the original
+one-bit annealed walk. It supports:
+
+- multi-flip mutation steps
+- elite archive tracking
+- controlled restarts from elite states
+- richer checkpoint payloads with restart and elite-score data
+
+Preserved upgraded local artifacts:
+
+- `runs/order_428_lane01_upgrade_seed67_final.json`
+  - `best_score = 5536`
+  - `periodic_score = 5472`
+  - `row_sum_penalty = 64`
+  - `max_shift_violation = 20`
+- `runs/order_668_lane01_upgrade_seed67_long_final.json`
+  - `best_score = 13216`
+  - `periodic_score = 13152`
+  - `row_sum_penalty = 64`
+  - `max_shift_violation = 24`
+
+Compared with the earlier stored baselines:
+
+- order `428` improved from `10304` to `5536`
+- order `668` improved from `21888` to `13216`
+- order `668` max-shift defect improved from `36` to `24`
+
+This does not solve the problem. It does show that the current family still has
+traction and that the upgraded search loop is worth preserving as the active
+baseline rather than treating the original lane as the current state of the art.
+
+## What Must Be True For A Real Frontier Solution
 
 To solve the FrontierMath target from this repo, we need:
 
@@ -94,7 +162,29 @@ To solve the FrontierMath target from this repo, we need:
 
 The repo already has item `4`. The work now is items `1` through `3`.
 
+For order `428`, the requirement is softer:
+
+- we need a clean path to a valid known construction or imported matrix
+- we need verification to pass on that matrix
+- we need the export/verification path to be trustworthy before claiming any
+  `668` breakthrough
+
 ## Matrix Search Ladder
+
+### Lane 0: Recover the known warm-up target cleanly
+
+Because `428` is already known, the repo should gain a lane dedicated to warm-up
+recovery:
+
+- encode or import a known valid order `428` matrix
+- verify it with `verify_hadamard.py`
+- use it as the baseline acceptance test for CSV/export correctness
+
+Why this matters:
+
+- it separates build validation from open-problem novelty
+- it gives the new thread an exact acceptance test that should be reachable
+- it keeps the full `668` search from being judged on a shaky toolchain
 
 ### Lane 1: Strengthen the existing Williamson / four-circulant lane
 
@@ -171,7 +261,16 @@ Why this matters:
 
 ## Immediate Engineering Steps
 
-### Step 1: Preserve and annotate the current lane
+### Step 1: Add a warm-up validation lane
+
+Do not treat order `428` as just another heuristic score target.
+Instead:
+
+- add an explicit `lane_00`
+- recover or encode a known-valid order `428` matrix
+- make `verify_hadamard.py` the acceptance test for that lane
+
+### Step 2: Preserve and annotate the current lane
 
 Do not throw away the existing Williamson code. Instead:
 
@@ -181,8 +280,11 @@ Do not throw away the existing Williamson code. Instead:
   - four-circulant
   - symmetric sequences
   - PAF + row-sum score
+  - multi-flip local mutations
+  - elite archive retention
+  - controlled elite-based restarts
 
-### Step 2: Add richer checkpoint data
+### Step 3: Add richer checkpoint data
 
 Checkpoint files should also save:
 
@@ -193,7 +295,7 @@ Checkpoint files should also save:
 - temperature at checkpoint
 - elite archive score histogram
 
-### Step 3: Build an exact defect report
+### Step 4: Build an exact defect report
 
 Add a utility that reports:
 
@@ -208,7 +310,7 @@ That utility now exists as:
 
 - [report_williamson_defects.py](/Users/renaissancefieldlite1.0/Documents/Playground/Hadamard_Proof/report_williamson_defects.py)
 
-### Step 4: Add a second search engine
+### Step 5: Add a second search engine
 
 The repo should not stay single-lane.
 
@@ -223,12 +325,13 @@ That is how we avoid mistaking one stalled heuristic for the whole problem.
 
 The build order should be:
 
-1. preserve current lane and annotate assumptions
-2. add defect-report tooling
-3. speed up scoring / add elite restart archive
-4. add exact-constraint lane over the same family
-5. widen the family if the exact lane still shows no traction
-6. keep exact CSV verification as the final gate
+1. recover or encode a valid known order `428` matrix
+2. preserve current lane and annotate assumptions
+3. add defect-report tooling
+4. keep speeding up scoring and preserve the new elite-restart archive lane
+5. add exact-constraint lane over the same family
+6. widen the family if the exact lane still shows no traction
+7. keep exact CSV verification as the final gate
 
 ## Why This Document Exists
 
@@ -242,6 +345,8 @@ The point is not only to remember:
 
 The point is to remember the whole search posture:
 
+- which target is already known and should validate the build
+- which target is still the frontier novelty claim
 - what the current code assumes
 - what it is good for
 - where it is too narrow
