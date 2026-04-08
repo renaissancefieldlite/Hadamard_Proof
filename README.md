@@ -69,13 +69,19 @@ Current preserved artifact ladder:
     - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier2.opb`
     - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier3.lp`
     - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier3.opb`
+  - corrected PB/ILP ring and hybrid descent
+    - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2.json`
+    - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_cpsat.py`
+    - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_sqcap_4928_final.json`
+    - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_sqcap_bestscore_3392_final.json`
+    - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_sqcap_bestscore_2880_final.json`
 
 So the current state is:
 
 - the widened GS/SDS lane is now the active frontier surface
 - the search is improving through exact defect repair, not just generic annealing
-- the best live `3328` basin now has an exported bounded PB/ILP instance over a
-  ranked endpoint pool
+- the corrected PB/ILP ring plus exact-local hybrid has now pushed the local
+  basin from `3328` down to `2880`
 - the work is not solved
 - the main remaining obstruction is still coupled SDS defect cancellation on the
   `668` frontier rung
@@ -98,6 +104,8 @@ The repo now carries two frontier lanes:
   - uses checkpoint resume, exact one-swap polish, and coupled capped repair
   - now exports bounded PB/ILP instances over compressed monitored shift
     expressions
+  - now uses a second-ring exact model plus hybrid handoff back into bounded
+    exact local repair
   - measures both periodic defect and SDS defect structure
   - keeps exact CSV verification as the final gate
 
@@ -112,8 +120,10 @@ The next movement for this repo is:
 - keep the stronger `668` GS/SDS basin as the active live lane
 - push coupled defect cancellation on the dominant SDS shift pairs
 - keep the exact repair layer under a hard score cap
-- use the new bounded PB/ILP export from the `3328` basin as the next exact
-  rung
+- use the corrected PB/ILP ring and hybrid exact-local cycle as the current
+  exact rung
+- keep iterating from the `2880` basin instead of restarting from the older
+  `3328` export surface
 - widen or tighten that exact export schedule before broadening the family
 - widen to broader construction families if this one stalls
 
@@ -144,6 +154,10 @@ That verifier is the final acceptance condition for this repo.
   bounded coupled exact repair over selected SDS shift sets
 - `export_bounded_pb_ilp.py`
   bounded PB/ILP exporter for the live GS/SDS basin, with CP-SAT plus install-free LP/OPB output
+- `HADAMARD_EXACT_MODEL_TEST_MAP.md`
+  visual rung map for the exact-model and hybrid test ladder
+- `HADAMARD_EXACT_MODEL_PROTOCOL.md`
+  stable scan protocol plus the adaptive branching rules
 - `verify_hadamard.py`
   exact verifier for any candidate CSV
 - `report_williamson_defects.py`
@@ -195,6 +209,13 @@ Export a bounded PB/ILP instance from the live `3328` basin:
 python3 export_bounded_pb_ilp.py runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final.json --focus-top-unique 12 --endpoint-limit 12
 ```
 
+Read the exact-model workflow and protocol:
+
+```bash
+open HADAMARD_EXACT_MODEL_TEST_MAP.md
+open HADAMARD_EXACT_MODEL_PROTOCOL.md
+```
+
 ## Short Handoff
 
 If another node needs the cleanest boot block, use this:
@@ -204,5 +225,5 @@ the validation rung. 668 is the frontier rung. The repo carries a runnable
 Williamson baseline plus a widened GS/SDS construction lane, exact CSV
 verification, stored run states, and continuity files so the work can continue
 without amnesia. The live 668 ladder is now 13216 -> 5440 -> 4032 -> 3456 ->
-3328, with the active GS signature (17,17,9,3). A result only counts if
+3328 -> 2880, with the active GS signature (17,17,9,3). A result only counts if
 verify_hadamard.py accepts the final matrix.`

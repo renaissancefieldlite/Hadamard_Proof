@@ -1142,7 +1142,7 @@
   ],
   "shift_expressions": {
     "26": {
-      "base_minus_lambda": -111,
+      "base_minus_lambda": -54,
       "linear_terms": [
         {
           "row": 0,
@@ -1517,7 +1517,7 @@
       ]
     },
     "32": {
-      "base_minus_lambda": -119,
+      "base_minus_lambda": -58,
       "linear_terms": [
         {
           "row": 0,
@@ -1920,7 +1920,7 @@
       ]
     },
     "4": {
-      "base_minus_lambda": -62,
+      "base_minus_lambda": -32,
       "linear_terms": [
         {
           "row": 0,
@@ -2326,7 +2326,7 @@
       ]
     },
     "29": {
-      "base_minus_lambda": -52,
+      "base_minus_lambda": -27,
       "linear_terms": [
         {
           "row": 0,
@@ -2733,7 +2733,7 @@
       ]
     },
     "38": {
-      "base_minus_lambda": -96,
+      "base_minus_lambda": -47,
       "linear_terms": [
         {
           "row": 0,
@@ -3133,7 +3133,7 @@
       ]
     },
     "43": {
-      "base_minus_lambda": -66,
+      "base_minus_lambda": -34,
       "linear_terms": [
         {
           "row": 0,
@@ -3518,7 +3518,7 @@
       ]
     },
     "45": {
-      "base_minus_lambda": -72,
+      "base_minus_lambda": -37,
       "linear_terms": [
         {
           "row": 0,
@@ -3913,7 +3913,7 @@
       ]
     },
     "48": {
-      "base_minus_lambda": -68,
+      "base_minus_lambda": -35,
       "linear_terms": [
         {
           "row": 0,
@@ -4305,7 +4305,7 @@
       ]
     },
     "49": {
-      "base_minus_lambda": -60,
+      "base_minus_lambda": -31,
       "linear_terms": [
         {
           "row": 0,
@@ -4708,7 +4708,7 @@
       ]
     },
     "50": {
-      "base_minus_lambda": -102,
+      "base_minus_lambda": -50,
       "linear_terms": [
         {
           "row": 0,
@@ -5113,7 +5113,7 @@
       ]
     },
     "51": {
-      "base_minus_lambda": -102,
+      "base_minus_lambda": -50,
       "linear_terms": [
         {
           "row": 0,
@@ -5547,7 +5547,7 @@
       ]
     },
     "65": {
-      "base_minus_lambda": -106,
+      "base_minus_lambda": -52,
       "linear_terms": [
         {
           "row": 0,

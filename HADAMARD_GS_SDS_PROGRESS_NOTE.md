@@ -38,6 +38,12 @@ The current preserved progression is:
   - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier2.opb`
   - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier3.lp`
   - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier3.opb`
+- corrected ring-2 / hybrid rung
+  - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2.json`
+  - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_cpsat.py`
+  - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_sqcap_4928_final.json`
+  - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_sqcap_bestscore_3392_final.json`
+  - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_sqcap_bestscore_2880_final.json`
 
 ## What Changed
 
@@ -57,6 +63,10 @@ The repo now includes:
   - bounded occupancy PB/ILP export from the live basin
   - compressed monitored shift expressions instead of raw pair-term soup
   - install-free LP/OPB text output plus a CP-SAT skeleton
+- `HADAMARD_EXACT_MODEL_TEST_MAP.md`
+  - visual rung map of the exact-model descent
+- `HADAMARD_EXACT_MODEL_PROTOCOL.md`
+  - fixed scan backbone plus adaptive branch rules
 
 ## Current Read
 
@@ -82,6 +92,20 @@ For the bounded PB/ILP export from that basin:
   - then `K = 6`, weighted cap `79`
   - then `K = 8`, weighted cap `79`
 
+For the corrected ring-2 / hybrid descent:
+
+- the corrected exporter now evaluates the live basin honestly
+- the second-ring exact model and square-sum surrogate produced:
+  - `4928`
+  - then promoted best-score basin `3392`
+  - then promoted best-score basin `2880`
+- current best local exact-model-assisted basin:
+  - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_sqcap_bestscore_2880_final.json`
+- current read of that basin:
+  - `best_score = 2880`
+  - `max_shift_violation = 12`
+  - `indicator_fourier_max_deviation = 32`
+
 ## Meaning
 
 The important repo-level change is:
@@ -92,6 +116,8 @@ The important repo-level change is:
   floor
 - the repo now carries a real bounded PB/ILP export surface from the best public
   basin
+- the corrected exact-model cycle can now produce real full-score improvements,
+  not just monitored-window improvements
 - the work is not solved, but the frontier surface is stronger and cleaner than
   the earlier Williamson-only state
 
@@ -100,8 +126,10 @@ The important repo-level change is:
 The next clean rung after this note is:
 
 - continue bounded coupled repair from the `3328` basin
-- use the exported bounded PB/ILP instance as the next exact rung
-- if that exact instance plateaus, widen the candidate pool or move budget
+- use the corrected ring-2 / hybrid exact-model cycle from the `2880` basin as
+  the active next rung
+- if that cycle plateaus, widen the ring or change the surrogate before asking
+  for a new reduction
 
 ## Public Reminder
 

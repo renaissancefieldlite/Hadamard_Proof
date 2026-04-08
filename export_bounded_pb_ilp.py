@@ -91,13 +91,10 @@ def compress_shift_expressions(
                 free_right = (row_idx, partner) in free
                 left_const = int(occupancy[row_idx][g])
                 right_const = int(occupancy[row_idx][partner])
-                old = left_const * right_const
 
                 if not free_left and not free_right:
-                    expr["base_minus_lambda"] = int(expr["base_minus_lambda"]) + old
+                    expr["base_minus_lambda"] = int(expr["base_minus_lambda"]) + (left_const * right_const)
                     continue
-
-                expr["base_minus_lambda"] = int(expr["base_minus_lambda"]) - old
 
                 if free_left and free_right:
                     key = (int(row_idx), int(g), int(partner))
