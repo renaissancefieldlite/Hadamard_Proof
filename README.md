@@ -60,11 +60,22 @@ Current preserved artifact ladder:
     - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final.json`
     - `best_score = 3328`
     - `max_shift_violation = 12`
+  - bounded PB/ILP exporter rung from the `3328` basin
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp.json`
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_cpsat.py`
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier1.lp`
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier1.opb`
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier2.lp`
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier2.opb`
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier3.lp`
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier3.opb`
 
 So the current state is:
 
 - the widened GS/SDS lane is now the active frontier surface
 - the search is improving through exact defect repair, not just generic annealing
+- the best live `3328` basin now has an exported bounded PB/ILP instance over a
+  ranked endpoint pool
 - the work is not solved
 - the main remaining obstruction is still coupled SDS defect cancellation on the
   `668` frontier rung
@@ -85,6 +96,8 @@ The repo now carries two frontier lanes:
   - current active signature for `668`: `(17,17,9,3)`
   - equivalent SDS parameters: `(167; 75,75,79,82; 144)`
   - uses checkpoint resume, exact one-swap polish, and coupled capped repair
+  - now exports bounded PB/ILP instances over compressed monitored shift
+    expressions
   - measures both periodic defect and SDS defect structure
   - keeps exact CSV verification as the final gate
 
@@ -99,8 +112,9 @@ The next movement for this repo is:
 - keep the stronger `668` GS/SDS basin as the active live lane
 - push coupled defect cancellation on the dominant SDS shift pairs
 - keep the exact repair layer under a hard score cap
-- export the coupled repair surface into a real PB/ILP instance if the bounded
-  local repair plateaus
+- use the new bounded PB/ILP export from the `3328` basin as the next exact
+  rung
+- widen or tighten that exact export schedule before broadening the family
 - widen to broader construction families if this one stalls
 
 The repo is therefore meant to show:
@@ -128,6 +142,8 @@ That verifier is the final acceptance condition for this repo.
   active GS/SDS construction lane
 - `exact_sds_local_repair.py`
   bounded coupled exact repair over selected SDS shift sets
+- `export_bounded_pb_ilp.py`
+  bounded PB/ILP exporter for the live GS/SDS basin, with CP-SAT plus install-free LP/OPB output
 - `verify_hadamard.py`
   exact verifier for any candidate CSV
 - `report_williamson_defects.py`
@@ -171,6 +187,12 @@ Run a coupled capped repair:
 
 ```bash
 python3 exact_sds_local_repair.py runs/order_668_gs_17-17-9-3_coupled_cap_3456_final.json --focus-top-unique 12 --depth 6 --beam-width 128 --endpoint-limit 20 --swap-pool-limit 256 --score-slack 0
+```
+
+Export a bounded PB/ILP instance from the live `3328` basin:
+
+```bash
+python3 export_bounded_pb_ilp.py runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final.json --focus-top-unique 12 --endpoint-limit 12
 ```
 
 ## Short Handoff

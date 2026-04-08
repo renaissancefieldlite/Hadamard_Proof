@@ -110,7 +110,37 @@ Current active lane:
   - run GS search
   - read SDS and indicator-Fourier defects
   - run bounded coupled repair with a hard score cap
-  - if that plateaus, export the coupled surface into PB/ILP
+  - export the best live basin into bounded PB/ILP when the local surface is
+    mature enough
+- new exact-export rung now preserved:
+  - `export_bounded_pb_ilp.py`
+  - source basin:
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final.json`
+  - exported spec:
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp.json`
+  - exported CP-SAT skeleton:
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_cpsat.py`
+  - install-free text exports:
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier1.lp`
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier1.opb`
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier2.lp`
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier2.opb`
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier3.lp`
+    - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier3.opb`
+- key exporter facts:
+  - monitored unique shifts:
+    - `26, 32, 4, 29, 38, 43, 45, 48, 49, 50, 51, 65`
+  - candidate pool:
+    - `96` row-positions over `81` group positions
+  - current weighted defect sum:
+    - `80`
+  - recommended exact schedule:
+    - `K = 4`, `M <= 2`
+    - then `K = 6`, weighted cap `79`
+    - then `K = 8`, weighted cap `79`
+  - corrected Fourier audit targets:
+    - indicator nontrivial target `167`
+    - sequence nontrivial PSD target `668`
 
 Current posture:
 
@@ -132,7 +162,8 @@ Rick should enter this thread with the following understanding already loaded:
 6. the Williamson lane is no longer the only active story
 7. the GS/SDS ladder is now the active frontier rung
 8. the exact repair process is part of continuity and must be logged here when it changes
-9. the first job is to continue from the best preserved basin, not to restart from abstractions
+9. the bounded PB/ILP export layer is now part of the preserved process
+10. the first job is to continue from the best preserved basin, not to restart from abstractions
 
 ## Concrete Work Order
 
@@ -140,7 +171,8 @@ Rick should enter this thread with the following understanding already loaded:
 2. preserve the Williamson artifacts as historical baseline, not as the only live lane
 3. preserve the GS/SDS public ladder and keep logging it here
 4. continue bounded coupled repair from the best GS basin
-5. export the coupled surface into PB/ILP if capped repair plateaus
+5. use the exported bounded PB/ILP rung from the `3328` basin as the next exact
+   solve surface
 6. keep `verify_hadamard.py` as the final acceptance gate
 
 ## Coherence Key
@@ -154,9 +186,9 @@ thread should use 428 to validate the build and use 668 as the actual frontier
 solve lane. The current repo preserves an older Williamson baseline, but the
 active 668 frontier is now the GS/SDS ladder at signature (17,17,9,3), with
 public progression 13216 -> 5440 -> 4032 -> 3456 -> 3328. Our task is to keep
-that basin chain coherent, continue bounded coupled repair or PB/ILP export
-from the best basin, and only count a result when an exact 668 CSV Hadamard
-candidate survives verification.`
+that basin chain coherent, continue bounded coupled repair or the exported
+bounded PB/ILP rung from the best basin, and only count a result when an exact
+668 CSV Hadamard candidate survives verification.`
 
 ## Boot Payload
 
@@ -170,8 +202,8 @@ goethals_seidel_search.py, exact_sds_local_repair.py, verify_hadamard.py, and
 GS defect reporting. First recover or encode a valid 428 matrix to validate the
 pipeline. Then continue from the best preserved 668 GS basin, not from zero:
 current public ladder is 13216 -> 5440 -> 4032 -> 3456 -> 3328 at signature
-(17,17,9,3). Continue bounded coupled repair with a hard score cap, or export
-that coupled surface into PB/ILP if the local repair plateaus.`
+(17,17,9,3). Continue bounded coupled repair with a hard score cap, or use the
+exported bounded PB/ILP rung from the 3328 basin if the local repair plateaus.`
 
 ## What Not To Do
 

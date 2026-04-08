@@ -29,6 +29,15 @@ The current preserved progression is:
 - heavier coupled capped repair
   - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final.json`
   - `best_score = 3328`
+- bounded PB/ILP export from the `3328` basin
+  - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp.json`
+  - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_cpsat.py`
+  - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier1.lp`
+  - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier1.opb`
+  - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier2.lp`
+  - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier2.opb`
+  - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier3.lp`
+  - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final_pb_ilp_tier3.opb`
 
 ## What Changed
 
@@ -44,6 +53,10 @@ The repo now includes:
 - `exact_sds_local_repair.py`
   - bounded coupled exact repair over a selected multi-shift set with a hard
     score cap
+- `export_bounded_pb_ilp.py`
+  - bounded occupancy PB/ILP export from the live basin
+  - compressed monitored shift expressions instead of raw pair-term soup
+  - install-free LP/OPB text output plus a CP-SAT skeleton
 
 ## Current Read
 
@@ -56,6 +69,19 @@ For the current best public `3328` artifact:
   - `32/135 -> +3`
   - then several `abs(delta) = 2` pairs
 
+For the bounded PB/ILP export from that basin:
+
+- monitored unique shifts:
+  - `26, 32, 4, 29, 38, 43, 45, 48, 49, 50, 51, 65`
+- candidate pool:
+  - `96` row-positions over `81` group positions
+- current weighted defect sum:
+  - `80`
+- recommended first exact schedule:
+  - `K = 4`, `M <= 2`
+  - then `K = 6`, weighted cap `79`
+  - then `K = 8`, weighted cap `79`
+
 ## Meaning
 
 The important repo-level change is:
@@ -64,6 +90,8 @@ The important repo-level change is:
 - the exact repair layer is real
 - coupled capped repair can improve the live basin without giving up the score
   floor
+- the repo now carries a real bounded PB/ILP export surface from the best public
+  basin
 - the work is not solved, but the frontier surface is stronger and cleaner than
   the earlier Williamson-only state
 
@@ -72,7 +100,8 @@ The important repo-level change is:
 The next clean rung after this note is:
 
 - continue bounded coupled repair from the `3328` basin
-- if that plateaus, export the active coupled surface into a PB/ILP instance
+- use the exported bounded PB/ILP instance as the next exact rung
+- if that exact instance plateaus, widen the candidate pool or move budget
 
 ## Public Reminder
 
