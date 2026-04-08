@@ -10,6 +10,22 @@ The immediate target is the [Epoch FrontierMath Hadamard problem](https://epoch.
 - full frontier target: order `668`
 - final deliverable: square CSV matrix with entries in `{+1, -1}`
 
+## Global Rick Rule
+
+Before touching the Hadamard lane, open:
+
+- [RICK_RULES_AND_CONTINUITY_PROTOCOL.md](/Users/renaissancefieldlite1.0/Documents/Playground/RICK_RULES_AND_CONTINUITY_PROTOCOL.md)
+
+That file carries the cross-thread continuity rules the next Rick must keep in
+view:
+
+- recover from the workspace before answering
+- do not make unverified claims about repo or fix state
+- do not flatten the work into generic safe language
+- do not push without explicit approval
+- do not reintroduce clamp language where the local record already carries its
+  own evidentiary discipline
+
 ## What The Prior Chat Log Actually Gives Us
 
 The recovered chat-log file does **not** contain explicit Hadamard math.
@@ -38,14 +54,21 @@ That means the repo should split its thinking cleanly:
 
 ## Current Mathematical Starting State
 
-The actual Hadamard-specific state comes from the existing repo:
+The actual Hadamard-specific state comes from the existing repo, and this file
+should be updated as the lane changes so the next Rick can recover after
+compaction instead of hallucinating the old state.
+
+The key public and local surfaces now are:
 
 - `README.md`
+- `HADAMARD_GS_SDS_PROGRESS_NOTE.md`
 - `HADAMARD_CONTINUITY_AND_SEARCH_PLAN.md`
 - `williamson_search.py`
+- `goethals_seidel_search.py`
+- `exact_sds_local_repair.py`
 - `verify_hadamard.py`
 
-Current lane:
+Preserved older lane:
 
 - symmetric Williamson / four-circulant search
 - four `±1` sequences of odd length `n`
@@ -68,11 +91,32 @@ Preserved upgraded `lane_01` artifacts now also exist:
   - `best_score = 13216`
   - `max_shift_violation = 24`
 
+Current active lane:
+
+- Goethals-Seidel / SDS over `n = 167`
+- active row-sum signature: `(17,17,9,3)`
+- equivalent SDS parameters: `(167; 75,75,79,82; 144)`
+- the public progression now preserved is:
+  - `13216 -> 5440 -> 4032 -> 3456 -> 3328`
+- the key public run artifacts are:
+  - `runs/order_668_gs_17-17-9-3_baseline_5440_final.json`
+  - `runs/order_668_gs_17-17-9-3_exact_polish_4032_final.json`
+  - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_final.json`
+  - `runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final.json`
+- current dominant unique SDS defect pairs in the best public basin:
+  - `26/141 -> +3`
+  - `32/135 -> +3`
+- current exact process:
+  - run GS search
+  - read SDS and indicator-Fourier defects
+  - run bounded coupled repair with a hard score cap
+  - if that plateaus, export the coupled surface into PB/ILP
+
 Current posture:
 
-- this is a real first search surface
-- it is not the whole proof program
-- if the family is too narrow, widen it instead of pretending the problem is exhausted
+- this is a real widened frontier surface
+- the exact repair layer is part of the process now, not an optional side note
+- if the current GS/SDS local repair plateaus, the next rung is PB/ILP export
 - a valid `428` matrix would validate the pipeline, but a valid `668` matrix is
   the actual open-problem win
 
@@ -85,18 +129,19 @@ Rick should enter this thread with the following understanding already loaded:
 3. the previous chat-log file contributes search posture, not Hadamard formulas
 4. order `428` is a known warm-up that should validate the build
 5. order `668` is the real frontier target
-6. the first job is to harden the baseline, not to fantasize a proof
-7. the second job is to widen the lane only after the current family is measured properly
+6. the Williamson lane is no longer the only active story
+7. the GS/SDS ladder is now the active frontier rung
+8. the exact repair process is part of continuity and must be logged here when it changes
+9. the first job is to continue from the best preserved basin, not to restart from abstractions
 
 ## Concrete Work Order
 
 1. recover or encode a valid known order `428` matrix and verify it
-2. preserve the upgraded `lane_01` artifacts as the active heuristic baseline
-3. split the aggregate score into defect components
-4. add richer checkpoint data
-5. build an exact-constraint version of the same family
-6. widen to broader block families if the exact lane shows no traction
-7. keep `verify_hadamard.py` as the final acceptance gate
+2. preserve the Williamson artifacts as historical baseline, not as the only live lane
+3. preserve the GS/SDS public ladder and keep logging it here
+4. continue bounded coupled repair from the best GS basin
+5. export the coupled surface into PB/ILP if capped repair plateaus
+6. keep `verify_hadamard.py` as the final acceptance gate
 
 ## Coherence Key
 
@@ -106,10 +151,12 @@ Use this orientation in the new Hadamard thread:
 thread, but the Hadamard-specific math begins from the repo itself. The Epoch
 brief says 428 is the known warm-up and 668 is the real open target. So the new
 thread should use 428 to validate the build and use 668 as the actual frontier
-solve lane. The current repo starts with a symmetric Williamson /
-four-circulant search over both orders. Our task is to preserve the baseline,
-expose exact defects, and widen the search family methodically until an exact
-668 CSV Hadamard candidate survives verification.`
+solve lane. The current repo preserves an older Williamson baseline, but the
+active 668 frontier is now the GS/SDS ladder at signature (17,17,9,3), with
+public progression 13216 -> 5440 -> 4032 -> 3456 -> 3328. Our task is to keep
+that basin chain coherent, continue bounded coupled repair or PB/ILP export
+from the best basin, and only count a result when an exact 668 CSV Hadamard
+candidate survives verification.`
 
 ## Boot Payload
 
@@ -118,16 +165,19 @@ If Rick needs a single block to paste into a fresh Hadamard thread, use this:
 `Hadamard continuity boot: the old thread log contributed benchmark posture and
 artifact discipline, not direct Hadamard formulas. The supplied Epoch brief says
 428 is a known warm-up and 668 is the true open target. The repo already has a
-runnable lane_01 in williamson_search.py plus verify_hadamard.py and defect
-reporting. First recover or encode a valid 428 matrix to validate the pipeline.
-Then start from the upgraded 668 Williamson / four-circulant lane preserved in
-the local run artifacts, measure its defect structure, and widen methodically
-if the family stalls.`
+runnable Williamson baseline plus an active GS/SDS lane in
+goethals_seidel_search.py, exact_sds_local_repair.py, verify_hadamard.py, and
+GS defect reporting. First recover or encode a valid 428 matrix to validate the
+pipeline. Then continue from the best preserved 668 GS basin, not from zero:
+current public ladder is 13216 -> 5440 -> 4032 -> 3456 -> 3328 at signature
+(17,17,9,3). Continue bounded coupled repair with a hard score cap, or export
+that coupled surface into PB/ILP if the local repair plateaus.`
 
 ## What Not To Do
 
 - do not claim the old chat log contained explicit Hadamard formulas when it did not
 - do not confuse a valid warm-up `428` matrix with solving the open `668` case
-- do not treat one heuristic lane as the whole problem
+- do not treat the old Williamson lane as the current whole story
 - do not collapse warm-up assistance into core proof credit
 - do not widen the search randomly without preserving why the current lane stalled
+- do not let compaction erase the active artifact ladder; update this file when the rung changes
