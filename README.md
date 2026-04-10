@@ -75,6 +75,13 @@ Current preserved artifact ladder:
     - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_sqcap_4928_final.json`
     - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_sqcap_bestscore_3392_final.json`
     - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_sqcap_bestscore_2880_final.json`
+  - root-`2880` ring-2 continuation
+    - `runs/order_668_gs_17-17-9-3_root2880_ring2_pb_ilp.json`
+    - `runs/order_668_gs_17-17-9-3_root2880_ring2_pb_ilp_cpsat.py`
+    - `runs/order_668_gs_17-17-9-3_root2880_ring2_sqcap_K4_4032_final.json`
+    - `runs/order_668_gs_17-17-9-3_root2880_ring2_sqcap_bestscore_2752_final.json`
+    - `best_score = 2752`
+    - `max_shift_violation = 8`
 
 So the current state is:
 
@@ -82,6 +89,8 @@ So the current state is:
 - the search is improving through exact defect repair, not just generic annealing
 - the corrected PB/ILP ring plus exact-local hybrid has now pushed the local
   basin from `3328` down to `2880`
+- the root-`2880` ring-2 exact-to-local continuation has now pushed the local
+  floor from `2880` down to `2752`
 - the work is not solved
 - the main remaining obstruction is still coupled SDS defect cancellation on the
   `668` frontier rung
@@ -122,8 +131,8 @@ The next movement for this repo is:
 - keep the exact repair layer under a hard score cap
 - use the corrected PB/ILP ring and hybrid exact-local cycle as the current
   exact rung
-- keep iterating from the `2880` basin instead of restarting from the older
-  `3328` export surface
+- keep iterating from the `2752` floor instead of restarting from the older
+  `2880` or `3328` surfaces
 - widen or tighten that exact export schedule before broadening the family
 - widen to broader construction families if this one stalls
 
@@ -154,6 +163,8 @@ That verifier is the final acceptance condition for this repo.
   bounded coupled exact repair over selected SDS shift sets
 - `export_bounded_pb_ilp.py`
   bounded PB/ILP exporter for the live GS/SDS basin, with CP-SAT plus install-free LP/OPB output
+- `solve_bounded_pb_sqcap.py`
+  monitored square-sum exact solver for bounded PB/ILP rings
 - `HADAMARD_EXACT_MODEL_TEST_MAP.md`
   visual rung map for the exact-model and hybrid test ladder
 - `HADAMARD_EXACT_MODEL_PROTOCOL.md`
@@ -209,6 +220,12 @@ Export a bounded PB/ILP instance from the live `3328` basin:
 python3 export_bounded_pb_ilp.py runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final.json --focus-top-unique 12 --endpoint-limit 12
 ```
 
+Run the monitored square-sum exact rung on a bounded PB/ILP export:
+
+```bash
+python3 solve_bounded_pb_sqcap.py runs/order_668_gs_17-17-9-3_root2880_ring2_pb_ilp.json --output-prefix runs/order_668_gs_17-17-9-3_root2880_ring2_sqcap --K-values 4,6,8 --translation-fix
+```
+
 Read the exact-model workflow and protocol:
 
 ```bash
@@ -225,5 +242,5 @@ the validation rung. 668 is the frontier rung. The repo carries a runnable
 Williamson baseline plus a widened GS/SDS construction lane, exact CSV
 verification, stored run states, and continuity files so the work can continue
 without amnesia. The live 668 ladder is now 13216 -> 5440 -> 4032 -> 3456 ->
-3328 -> 2880, with the active GS signature (17,17,9,3). A result only counts if
+3328 -> 2880 -> 2752, with the active GS signature (17,17,9,3). A result only counts if
 verify_hadamard.py accepts the final matrix.`

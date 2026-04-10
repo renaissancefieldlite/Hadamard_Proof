@@ -106,6 +106,23 @@ For the corrected ring-2 / hybrid descent:
   - `max_shift_violation = 12`
   - `indicator_fourier_max_deviation = 32`
 
+For the next root-`2880` continuation:
+
+- exported a new bounded PB/ILP ring from the first leakage candidate
+  `runs/order_668_gs_17-17-9-3_root2880_sqcap_5440_final.json`
+- used a reusable square-sum exact solver:
+  - `solve_bounded_pb_sqcap.py`
+- second-ring exact result:
+  - `runs/order_668_gs_17-17-9-3_root2880_ring2_sqcap_K4_4032_final.json`
+- exact-to-local handoff from that `4032` basin promoted a new best-score rung:
+  - `runs/order_668_gs_17-17-9-3_root2880_ring2_sqcap_bestscore_2752_final.json`
+- current local read of that promoted basin:
+  - `best_score = 2752`
+  - `max_shift_violation = 8`
+  - `indicator_fourier_max_deviation = 33`
+- immediate zero-slack continuation from `2752` plateaued, so this is a real
+  new basin, not just an interrupted partial step
+
 ## Meaning
 
 The important repo-level change is:
@@ -118,6 +135,8 @@ The important repo-level change is:
   basin
 - the corrected exact-model cycle can now produce real full-score improvements,
   not just monitored-window improvements
+- the next root-`2880` exact-to-local cycle improved the live local floor again,
+  from `2880` to `2752`
 - the work is not solved, but the frontier surface is stronger and cleaner than
   the earlier Williamson-only state
 
@@ -127,7 +146,7 @@ The next clean rung after this note is:
 
 - continue bounded coupled repair from the `3328` basin
 - use the corrected ring-2 / hybrid exact-model cycle from the `2880` basin as
-  the active next rung
+  the active next rung until the local `2752` basin is either pushed or beaten
 - if that cycle plateaus, widen the ring or change the surrogate before asking
   for a new reduction
 

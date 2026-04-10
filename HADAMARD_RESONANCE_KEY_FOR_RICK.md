@@ -145,12 +145,23 @@ Current active lane:
   - second-ring export:
     - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2.json`
     - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_cpsat.py`
+  - reusable square-sum solver:
+    - `solve_bounded_pb_sqcap.py`
   - square-sum exact rung:
     - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_sqcap_4928_final.json`
   - promoted best-score rung:
     - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_sqcap_bestscore_3392_final.json`
-  - current best local exact-model-assisted basin:
     - `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_sqcap_bestscore_2880_final.json`
+  - root-2880 continuation now also preserved locally:
+    - second-ring export from `runs/order_668_gs_17-17-9-3_root2880_sqcap_5440_final.json`:
+      - `runs/order_668_gs_17-17-9-3_root2880_ring2_pb_ilp.json`
+      - `runs/order_668_gs_17-17-9-3_root2880_ring2_pb_ilp_cpsat.py`
+    - second-ring square-sum rung:
+      - `runs/order_668_gs_17-17-9-3_root2880_ring2_sqcap_K4_4032_final.json`
+    - promoted best-score rung:
+      - `runs/order_668_gs_17-17-9-3_root2880_ring2_sqcap_bestscore_2752_final.json`
+  - current best local exact-model-assisted basin:
+    - `runs/order_668_gs_17-17-9-3_root2880_ring2_sqcap_bestscore_2752_final.json`
   - exact-model process docs:
     - `HADAMARD_EXACT_MODEL_TEST_MAP.md`
     - `HADAMARD_EXACT_MODEL_PROTOCOL.md`
@@ -199,11 +210,12 @@ brief says 428 is the known warm-up and 668 is the real open target. So the new
 thread should use 428 to validate the build and use 668 as the actual frontier
 solve lane. The current repo preserves an older Williamson baseline, but the
 active 668 frontier is now the GS/SDS ladder at signature (17,17,9,3), with
-public progression 13216 -> 5440 -> 4032 -> 3456 -> 3328, and the current local
-exact-model-assisted continuation now reaches 2880. Our task is to keep that
-basin chain coherent, continue bounded coupled repair or the corrected ring-2 /
-hybrid exact-model loop from the best basin, and only count a result when an
-exact 668 CSV Hadamard candidate survives verification.`
+public progression 13216 -> 5440 -> 4032 -> 3456 -> 3328, public/local exact
+continuation to 2880, and the current local root-2880 ring-2 continuation now
+reaches 2752. Our task is to keep that basin chain coherent, continue bounded
+coupled repair or the corrected ring-2 / hybrid exact-model loop from the best
+basin, and only count a result when an exact 668 CSV Hadamard candidate
+survives verification.`
 
 ## Boot Payload
 
@@ -217,8 +229,9 @@ goethals_seidel_search.py, exact_sds_local_repair.py, verify_hadamard.py, and
 GS defect reporting. First recover or encode a valid 428 matrix to validate the
 pipeline. Then continue from the best preserved 668 GS basin, not from zero:
 current public ladder is 13216 -> 5440 -> 4032 -> 3456 -> 3328 at signature
-(17,17,9,3), and the current local exact-model-assisted continuation reaches
-2880. Continue bounded coupled repair with a hard score cap, or use the
+(17,17,9,3), public/local exact continuation reaches 2880, and the current
+local root-2880 ring-2 continuation reaches 2752. Continue bounded coupled
+repair with a hard score cap, or use the
 corrected ring-2 / hybrid exact-model loop from the best preserved basin if the
 local repair plateaus.`
 

@@ -21,10 +21,11 @@ The live `668` GS/SDS ladder now looks like:
 | 4 | coupled capped repair | `3456` |
 | 5 | heavier coupled capped repair | `3328` |
 | 6 | corrected PB/ILP + ring-2 + square-sum + hybrid repair | `2880` |
+| 7 | root-`2880` ring-2 + square-sum + hybrid repair | `2752` |
 
 Best current local artifact:
 
-- `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_sqcap_bestscore_2880_final.json`
+- `runs/order_668_gs_17-17-9-3_root2880_ring2_sqcap_bestscore_2752_final.json`
 
 ## Visual Flow
 
@@ -166,20 +167,22 @@ Promoted best current local basin:
 | D | second-ring square-sum PB/ILP | `4928` | better global surrogate |
 | E | exact-to-local hybrid from `4928` | beam touched `3392` | exact model can seed a stronger local basin |
 | F | local repair from promoted `3392` | beam touched `2880` | this is the first true exact-model-assisted basin win |
+| G | root-`2880` ring-2 exact-to-local continuation | beam touched `2752` | the same loop still works from a stronger floor |
 
-## Current `2880` Read
+## Current `2752` Read
 
 Artifact:
 
-- `runs/order_668_gs_17-17-9-3_pb_ilp_ring2_sqcap_bestscore_2880_final.json`
+- `runs/order_668_gs_17-17-9-3_root2880_ring2_sqcap_bestscore_2752_final.json`
 
 Current top unique SDS defects:
 
-- `3/164 -> +3`
-- `2/165 -> -2`
-- `23/144 -> -2`
-- `35/132 -> +2`
-- `39/128 -> +2`
+- `5/162 -> -2`
+- `27/140 -> +2`
+- `34/133 -> -2`
+- `36/131 -> +2`
+- `40/127 -> +2`
+- `44/123 -> +2`
 - `42/125 -> -2`
 
 Current Fourier read:
@@ -204,4 +207,3 @@ It behaves more like:
 That is why the process has to be logged.
 
 The scanable part exists, but only inside a controlled loop.
-
