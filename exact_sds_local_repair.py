@@ -82,6 +82,49 @@ def indicator_fourier_profile(state: np.ndarray) -> tuple[int, int, list[dict[st
     return target, int(max_deviation), items
 
 
+def top_unique_fourier_reps(state: np.ndarray, limit: int) -> list[int]:
+    if limit <= 0:
+        return []
+    n = state.shape[1]
+    _, _, items = indicator_fourier_profile(state)
+    reps: list[int] = []
+    seen: set[int] = set()
+    for item in items:
+        rep = min(int(item["frequency"]), n - int(item["frequency"]))
+        if rep <= 0 or rep in seen:
+            continue
+        seen.add(rep)
+        reps.append(rep)
+        if len(reps) >= limit:
+            break
+    return reps
+
+
+def normalize_unique_reps(values: list[int], n: int) -> list[int]:
+    seen: set[int] = set()
+    ordered: list[int] = []
+    for value in values:
+        rep = min(int(value) % n, (-int(value)) % n)
+        if rep <= 0 or rep >= n or rep in seen:
+            continue
+        seen.add(rep)
+        ordered.append(rep)
+    return ordered
+
+
+def indicator_fourier_deviations_for_frequencies(state: np.ndarray, frequencies: list[int]) -> list[int]:
+    if not frequencies:
+        return []
+    n = state.shape[1]
+    blocks = [(state[row] == -1).astype(np.float64) for row in range(4)]
+    total = np.zeros(n, dtype=np.float64)
+    for block in blocks:
+        fft_vals = np.fft.fft(block)
+        total += np.abs(fft_vals) ** 2
+    deviations = np.rint(total - n).astype(np.int64)
+    return [int(deviations[freq]) for freq in frequencies]
+
+
 def top_unique_sds_shifts(combined: np.ndarray, limit: int) -> list[int]:
     if limit <= 0:
         return []
@@ -101,16 +144,25 @@ def top_unique_sds_shifts(combined: np.ndarray, limit: int) -> list[int]:
     return [shift for shift, _ in ranked[:limit]]
 
 
-def objective_for_node(node: RepairNode, focus_shifts: list[int]) -> tuple[int, int, int, int]:
+def objective_for_node(
+    node: RepairNode,
+    focus_shifts: list[int],
+    fourier_frequencies: list[int] | None = None,
+) -> tuple[int, ...]:
     focus_values = sds_deltas_for_shifts(node.combined, focus_shifts)
     focus_max = max((abs(value) for value in focus_values), default=0)
     focus_penalty = sum(value * value for value in focus_values)
-    return (
+    objective: list[int] = [
         int(focus_max),
         int(focus_penalty),
-        int(node.metrics.total_score),
-        int(node.metrics.max_shift_violation),
-    )
+    ]
+    if fourier_frequencies:
+        fourier_values = indicator_fourier_deviations_for_frequencies(node.state, fourier_frequencies)
+        fourier_max = max((abs(value) for value in fourier_values), default=0)
+        fourier_penalty = sum(value * value for value in fourier_values)
+        objective.extend([int(fourier_max), int(fourier_penalty)])
+    objective.extend([int(node.metrics.total_score), int(node.metrics.max_shift_violation)])
+    return tuple(objective)
 
 
 def focused_endpoint_profiles(
@@ -147,6 +199,7 @@ def candidate_single_swaps(
     node: RepairNode,
     signature: tuple[int, int, int, int],
     focus_shifts: list[int],
+    fourier_frequencies: list[int],
     endpoint_limit: int,
     swap_pool_limit: int,
     max_score: int | None,
@@ -192,7 +245,7 @@ def candidate_single_swaps(
                 )
                 if max_score is not None and trial_metrics.total_score > max_score:
                     continue
-                objective = objective_for_node(trial_node, focus_shifts)
+                objective = objective_for_node(trial_node, focus_shifts, fourier_frequencies)
                 candidates.append((objective, trial_node))
 
     candidates.sort(key=lambda item: item[0])
@@ -213,6 +266,7 @@ def beam_search_repair(
     root: RepairNode,
     signature: tuple[int, int, int, int],
     focus_shifts: list[int],
+    fourier_frequencies: list[int],
     depth: int,
     beam_width: int,
     endpoint_limit: int,
@@ -223,7 +277,7 @@ def beam_search_repair(
     beam = [root]
     best = root
     best_score = root
-    best_exact = root if objective_for_node(root, focus_shifts)[:2] == (0, 0) else None
+    best_exact = root if objective_for_node(root, focus_shifts, fourier_frequencies)[:2] == (0, 0) else None
     seen: set[bytes] = {root.state.tobytes()}
 
     for _ in range(depth):
@@ -233,6 +287,7 @@ def beam_search_repair(
                 node,
                 signature,
                 focus_shifts,
+                fourier_frequencies,
                 endpoint_limit=endpoint_limit,
                 swap_pool_limit=swap_pool_limit,
                 max_score=max_score,
@@ -244,11 +299,11 @@ def beam_search_repair(
                 expanded.append(child)
                 if (
                     child.metrics.total_score,
-                    objective_for_node(child, focus_shifts),
+                    objective_for_node(child, focus_shifts, fourier_frequencies),
                     len(child.history),
                 ) < (
                     best_score.metrics.total_score,
-                    objective_for_node(best_score, focus_shifts),
+                    objective_for_node(best_score, focus_shifts, fourier_frequencies),
                     len(best_score.history),
                 ):
                     best_score = child
@@ -256,10 +311,10 @@ def beam_search_repair(
         if not expanded:
             break
 
-        expanded.sort(key=lambda node: objective_for_node(node, focus_shifts))
+        expanded.sort(key=lambda node: objective_for_node(node, focus_shifts, fourier_frequencies))
         beam = expanded[:beam_width]
         for candidate in beam:
-            if objective_for_node(candidate, focus_shifts)[:2] == (0, 0):
+            if objective_for_node(candidate, focus_shifts, fourier_frequencies)[:2] == (0, 0):
                 if best_exact is None or (
                     candidate.metrics.total_score,
                     candidate.metrics.max_shift_violation,
@@ -270,13 +325,13 @@ def beam_search_repair(
                     len(best_exact.history),
                 ):
                     best_exact = candidate
-        if objective_for_node(beam[0], focus_shifts) < objective_for_node(best, focus_shifts):
+        if objective_for_node(beam[0], focus_shifts, fourier_frequencies) < objective_for_node(best, focus_shifts, fourier_frequencies):
             best = beam[0]
 
     chosen = best
     if require_focus_zero and best_exact is not None:
         chosen = best_exact
-    elif best_exact is not None and objective_for_node(best_exact, focus_shifts) < objective_for_node(best, focus_shifts):
+    elif best_exact is not None and objective_for_node(best_exact, focus_shifts, fourier_frequencies) < objective_for_node(best, focus_shifts, fourier_frequencies):
         chosen = best_exact
 
     return RepairSearchResult(best_focus=chosen, best_score=best_score, best_exact=best_exact)
@@ -294,6 +349,8 @@ def main() -> int:
     parser.add_argument("checkpoint_path", type=Path)
     parser.add_argument("--focus-shifts", type=str, default="")
     parser.add_argument("--focus-top-unique", type=int, default=0)
+    parser.add_argument("--fourier-frequencies", type=str, default="")
+    parser.add_argument("--fourier-top-unique", type=int, default=0)
     parser.add_argument("--depth", type=int, default=4)
     parser.add_argument("--beam-width", type=int, default=48)
     parser.add_argument("--endpoint-limit", type=int, default=12)
@@ -317,6 +374,12 @@ def main() -> int:
     focus_shifts = sorted(set(explicit_focus + auto_focus))
     if not focus_shifts:
         raise SystemExit("provide --focus-shifts or --focus-top-unique")
+    explicit_fourier = normalize_unique_reps(
+        [int(part.strip()) for part in args.fourier_frequencies.split(",") if part.strip()],
+        n,
+    )
+    auto_fourier = top_unique_fourier_reps(root.state, args.fourier_top_unique)
+    fourier_frequencies = normalize_unique_reps(explicit_fourier + auto_fourier, n)
 
     max_score = None
     if args.score_slack >= 0:
@@ -325,6 +388,7 @@ def main() -> int:
         root,
         signature,
         focus_shifts,
+        fourier_frequencies,
         depth=max(1, args.depth),
         beam_width=max(1, args.beam_width),
         endpoint_limit=max(1, args.endpoint_limit),
@@ -338,6 +402,8 @@ def main() -> int:
     sds_lambda = sds_lambda_from_signature(signature, n)
     fourier_target, fourier_max_dev, fourier_items = indicator_fourier_profile(best.state)
     best_score_fourier_target, best_score_fourier_max_dev, best_score_fourier_items = indicator_fourier_profile(best_score_node.state)
+    best_selected_fourier = indicator_fourier_deviations_for_frequencies(best.state, fourier_frequencies)
+    best_score_selected_fourier = indicator_fourier_deviations_for_frequencies(best_score_node.state, fourier_frequencies)
     output_path = args.output or output_path_for(args.checkpoint_path, f"repair_{best.metrics.total_score}")
     output_payload = {
         "family": "goethals_seidel",
@@ -345,6 +411,7 @@ def main() -> int:
         "n": n,
         "signature": list(signature),
         "focus_shifts": focus_shifts,
+        "fourier_focus_frequencies": fourier_frequencies,
         "sds_lambda": int(sds_lambda),
         "repair_depth": int(args.depth),
         "repair_beam_width": int(args.beam_width),
@@ -355,6 +422,7 @@ def main() -> int:
         "repair_source": str(args.checkpoint_path),
         "repair_history": best.history,
         "best_focus_deltas": sds_deltas_for_shifts(best.combined, focus_shifts),
+        "best_fourier_focus_deviations": best_selected_fourier,
         "indicator_fourier_target": int(fourier_target),
         "indicator_fourier_max_deviation": int(fourier_max_dev),
         "indicator_fourier_top_deviations": fourier_items[:12],
@@ -364,6 +432,7 @@ def main() -> int:
         "best_score_seen": int(best_score_node.metrics.total_score),
         "best_score_seen_history": best_score_node.history,
         "best_score_seen_focus_deltas": sds_deltas_for_shifts(best_score_node.combined, focus_shifts),
+        "best_score_seen_fourier_focus_deviations": best_score_selected_fourier,
         "best_score_seen_indicator_fourier_target": int(best_score_fourier_target),
         "best_score_seen_indicator_fourier_max_deviation": int(best_score_fourier_max_dev),
         "best_score_seen_indicator_fourier_top_deviations": best_score_fourier_items[:12],
@@ -375,16 +444,19 @@ def main() -> int:
 
     print(f"focus_shifts={focus_shifts}")
     print(f"sds_lambda={sds_lambda}")
+    print(f"fourier_focus_frequencies={fourier_frequencies}")
     print(f"indicator_fourier_target={fourier_target}")
     print(f"indicator_fourier_max_deviation={fourier_max_dev}")
     print(f"max_score={max_score}")
-    print(f"root_objective={objective_for_node(root, focus_shifts)}")
-    print(f"best_objective={objective_for_node(best, focus_shifts)}")
+    print(f"root_objective={objective_for_node(root, focus_shifts, fourier_frequencies)}")
+    print(f"best_objective={objective_for_node(best, focus_shifts, fourier_frequencies)}")
     print(f"best_focus_deltas={sds_deltas_for_shifts(best.combined, focus_shifts)}")
+    print(f"best_fourier_focus_deviations={best_selected_fourier}")
     print(f"best_score={best.metrics.total_score}")
     print(f"best_max_shift={best.metrics.max_shift_violation}")
     print(f"best_score_seen={best_score_node.metrics.total_score}")
     print(f"best_score_seen_focus_deltas={sds_deltas_for_shifts(best_score_node.combined, focus_shifts)}")
+    print(f"best_score_seen_fourier_focus_deviations={best_score_selected_fourier}")
     print(f"history_len={len(best.history)}")
     for idx, move in enumerate(best.history, start=1):
         print(

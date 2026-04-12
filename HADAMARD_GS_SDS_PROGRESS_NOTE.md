@@ -133,6 +133,43 @@ For the next root-`2880` continuation:
 - that winner re-touches the `2752` floor but does not beat it, so the floor is
   stable and the portfolio method is acting as a disciplined seed generator
 
+For the blended surrogate upgrade from the `2752` floor:
+
+- upgraded portfolio summary:
+  - `runs/order_668_gs_17-17-9-3_root2752_portfolio_v5_summary.json`
+- that wider blended method opened a new floor:
+  - `runs/order_668_gs_17-17-9-3_root2752_v5blend_floor_bestscore_2688_final.json`
+- current read of that `2688` floor:
+  - `best_score = 2688`
+  - `max_shift_violation = 12`
+  - `indicator_fourier_max_deviation = 39`
+- winner ordering at that floor changed:
+  - `mixed_12_12` became the best exact-seed family
+  - `mixed_6_6` became second
+
+For the meta-blended continuation from the `2688` floor:
+
+- re-root portfolio summary:
+  - `runs/order_668_gs_17-17-9-3_root2688_portfolio_v2_summary.json`
+- the meta-blended floor escape from that floor opened a new floor:
+  - `runs/order_668_gs_17-17-9-3_root2688_metablend_floor_bestscore_2496_512slack_final.json`
+- current read of that `2496` floor:
+  - `best_score = 2496`
+  - `max_shift_violation = 8`
+  - `indicator_fourier_max_deviation = 37`
+
+For the first portfolio validation from the `2496` floor:
+
+- summary:
+  - `runs/order_668_gs_17-17-9-3_root2496_portfolio_v1_summary.json`
+- winner ordering changed again:
+  - `mixed_18_18` is now the best exact-seed family
+  - `mixed_12_12` is second
+- promoted winner artifact:
+  - `runs/order_668_gs_17-17-9-3_root2496_portfolio_v1_mixed_18_18_sqcap_K4_4736_bestscore_2496_final.json`
+- the winner re-touches the `2496` floor but does not beat it, so `2496` is the
+  current stable local frontier
+
 ## Meaning
 
 The important repo-level change is:
@@ -147,9 +184,11 @@ The important repo-level change is:
   not just monitored-window improvements
 - the next root-`2880` exact-to-local cycle improved the live local floor again,
   from `2880` to `2752`
-- the next process improvement after that was methodological rather than numeric:
-  the repo now has a fixed-floor ring portfolio so multiple ring families can be
-  compared from the same basin before promotion
+- the next process improvements were both methodological and numeric:
+  - blended surrogate promotion opened `2752 -> 2688`
+  - meta-blended floor escape opened `2688 -> 2496`
+  - the fixed-floor ring portfolio now tracks a winner-family widening:
+    `mixed_6_6 -> mixed_12_12 -> mixed_18_18`
 - the work is not solved, but the frontier surface is stronger and cleaner than
   the earlier Williamson-only state
 
@@ -157,10 +196,10 @@ The important repo-level change is:
 
 The next clean rung after this note is:
 
-- keep the `2752` basin as the frozen floor
-- use the `2752` ring portfolio harness as the default driver for new exact-ring
+- keep the `2496` basin as the frozen floor
+- use the `2496` ring portfolio harness as the default driver for new exact-ring
   cycles
-- treat `mixed_6_6` as the default portfolio winner until another ring family
+- treat `mixed_18_18` as the default portfolio winner until another ring family
   beats it on true global score
 - promote only the top `1-2` portfolio seeds into hybrid/local repair
 - if that cycle plateaus, widen the ring or change the surrogate before asking

@@ -1,0 +1,236 @@
+{
+  "floor_checkpoint": "runs/order_668_gs_17-17-9-3_root2752_v5blend_floor_bestscore_2688_final.json",
+  "floor_score": 2688,
+  "rings": [
+    {
+      "ring": "defect_top12",
+      "focus_shifts": [
+        49,
+        71,
+        1,
+        8,
+        34,
+        41,
+        70,
+        73,
+        2,
+        3,
+        4,
+        6
+      ],
+      "status": "ok",
+      "solve_attempt": {
+        "target_max": 2,
+        "square_drop": 1
+      },
+      "best_candidate": "runs/order_668_gs_17-17-9-3_root2688_portfolio_v1_defect_top12_sqcap_K4_5696_final.json",
+      "best_candidate_key": [
+        5696,
+        12,
+        56
+      ]
+    },
+    {
+      "ring": "fourier_top12",
+      "focus_shifts": [
+        43,
+        68,
+        67,
+        80,
+        46,
+        73,
+        1,
+        22,
+        42,
+        64,
+        47,
+        66
+      ],
+      "status": "ok",
+      "solve_attempt": {
+        "target_max": 1,
+        "square_drop": 1
+      },
+      "best_candidate": "runs/order_668_gs_17-17-9-3_root2688_portfolio_v1_fourier_top12_sqcap_K4_6336_final.json",
+      "best_candidate_key": [
+        6336,
+        16,
+        60
+      ]
+    },
+    {
+      "ring": "mixed_6_6",
+      "focus_shifts": [
+        49,
+        71,
+        1,
+        8,
+        34,
+        41,
+        43,
+        68,
+        67,
+        80,
+        46,
+        73
+      ],
+      "status": "ok",
+      "solve_attempt": {
+        "target_max": 2,
+        "square_drop": 1
+      },
+      "best_candidate": "runs/order_668_gs_17-17-9-3_root2688_portfolio_v1_mixed_6_6_sqcap_K4_5312_final.json",
+      "best_candidate_key": [
+        5312,
+        16,
+        66
+      ]
+    },
+    {
+      "ring": "mixed_12_12",
+      "focus_shifts": [
+        49,
+        71,
+        1,
+        8,
+        34,
+        41,
+        70,
+        73,
+        2,
+        3,
+        4,
+        6,
+        43,
+        68,
+        67,
+        80,
+        46,
+        22,
+        42,
+        64,
+        47,
+        66
+      ],
+      "status": "ok",
+      "solve_attempt": {
+        "target_max": 2,
+        "square_drop": 1
+      },
+      "best_candidate": "runs/order_668_gs_17-17-9-3_root2688_portfolio_v1_mixed_12_12_sqcap_K4_4736_final.json",
+      "best_candidate_key": [
+        4736,
+        16,
+        48
+      ]
+    }
+  ],
+  "promoted": [
+    {
+      "ring": "mixed_12_12",
+      "candidate": "runs/order_668_gs_17-17-9-3_root2688_portfolio_v1_mixed_12_12_sqcap_K4_4736_final.json",
+      "promote_focus_shifts": [
+        49,
+        71,
+        1,
+        8,
+        34,
+        41,
+        70,
+        73,
+        2,
+        3,
+        4,
+        6,
+        43,
+        68,
+        67,
+        80,
+        46,
+        22,
+        42,
+        64,
+        47,
+        66,
+        33,
+        11,
+        19,
+        20,
+        59,
+        63,
+        7,
+        16,
+        40,
+        45,
+        57,
+        58
+      ],
+      "promote_fourier_frequencies": [
+        5,
+        4,
+        18,
+        13,
+        21,
+        1,
+        61,
+        52,
+        74,
+        17,
+        40,
+        10
+      ],
+      "repair": "runs/order_668_gs_17-17-9-3_root2688_portfolio_v1_mixed_12_12_sqcap_K4_4736_repair.json",
+      "repair_best_score": 4544,
+      "repair_best_score_seen": 2688,
+      "promoted_path": "runs/order_668_gs_17-17-9-3_root2688_portfolio_v1_mixed_12_12_sqcap_K4_4736_bestscore_2688_final.json"
+    },
+    {
+      "ring": "mixed_6_6",
+      "candidate": "runs/order_668_gs_17-17-9-3_root2688_portfolio_v1_mixed_6_6_sqcap_K4_5312_final.json",
+      "promote_focus_shifts": [
+        49,
+        71,
+        1,
+        8,
+        34,
+        41,
+        43,
+        68,
+        67,
+        80,
+        46,
+        73,
+        70,
+        79,
+        9,
+        20,
+        24,
+        26,
+        44,
+        4,
+        6,
+        11,
+        15,
+        17
+      ],
+      "promote_fourier_frequencies": [
+        44,
+        6,
+        43,
+        70,
+        28,
+        51,
+        67,
+        83,
+        1,
+        27,
+        58,
+        13
+      ],
+      "repair": "runs/order_668_gs_17-17-9-3_root2688_portfolio_v1_mixed_6_6_sqcap_K4_5312_repair.json",
+      "repair_best_score": 4928,
+      "repair_best_score_seen": 2688,
+      "promoted_path": "runs/order_668_gs_17-17-9-3_root2688_portfolio_v1_mixed_6_6_sqcap_K4_5312_bestscore_2688_final.json"
+    }
+  ]
+}

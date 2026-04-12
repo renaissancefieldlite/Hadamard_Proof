@@ -16,6 +16,7 @@ from exact_sds_local_repair import (
     build_node,
     indicator_fourier_profile,
     load_checkpoint,
+    top_unique_fourier_reps,
     top_unique_sds_shifts,
 )
 
@@ -41,34 +42,20 @@ def dedupe_preserve_order(values: list[int], n: int) -> list[int]:
     return ordered
 
 
-def top_unique_fourier_reps(state: np.ndarray, limit: int) -> list[int]:
-    n = state.shape[1]
-    _, _, items = indicator_fourier_profile(state)
-    reps: list[int] = []
-    seen: set[int] = set()
-    for item in items:
-        rep = min(int(item["frequency"]), n - int(item["frequency"]))
-        if rep <= 0 or rep in seen:
-            continue
-        seen.add(rep)
-        reps.append(rep)
-        if len(reps) >= limit:
-            break
-    return reps
-
-
 def default_ring_specs(state: np.ndarray, signature: tuple[int, int, int, int]) -> list[RingSpec]:
     node = build_node(state, signature)
     n = state.shape[1]
     defect_top12 = top_unique_sds_shifts(node.combined, 12)
-    defect_top6 = top_unique_sds_shifts(node.combined, 6)
+    defect_top18 = top_unique_sds_shifts(node.combined, 18)
     fourier_top12 = top_unique_fourier_reps(state, 12)
-    mixed_6_6 = dedupe_preserve_order(defect_top6 + fourier_top12[:6], n)
+    fourier_top18 = top_unique_fourier_reps(state, 18)
+    mixed_12_12 = dedupe_preserve_order(defect_top12 + fourier_top12, n)
+    mixed_18_18 = dedupe_preserve_order(defect_top18 + fourier_top18, n)
     return [
         RingSpec("defect_top12", defect_top12),
-        RingSpec("defect_top6", defect_top6),
         RingSpec("fourier_top12", fourier_top12),
-        RingSpec("mixed_6_6", mixed_6_6),
+        RingSpec("mixed_12_12", mixed_12_12),
+        RingSpec("mixed_18_18", mixed_18_18),
     ]
 
 
@@ -80,6 +67,44 @@ def run_cmd(cmd: list[str], workdir: Path) -> subprocess.CompletedProcess[str]:
         capture_output=True,
         text=True,
     )
+
+
+def solve_sqcap_with_fallback(spec_path: Path, output_prefix: Path, workdir: Path, time_limit: float) -> dict[str, int] | None:
+    spec = read_json(spec_path)
+    focus_shifts = [int(value) for value in spec["focus_shifts"]]
+    current_abs = [int(spec["current_abs_deltas"][str(shift)]) for shift in focus_shifts]
+    current_max = max(current_abs, default=0)
+    attempts = [
+        {"target_max": max(current_max - 1, 0), "square_drop": 1},
+        {"target_max": current_max, "square_drop": 1},
+        {"target_max": current_max, "square_drop": 0},
+    ]
+
+    for attempt in attempts:
+        try:
+            run_cmd(
+                [
+                    sys.executable,
+                    "solve_bounded_pb_sqcap.py",
+                    str(spec_path),
+                    "--output-prefix",
+                    str(output_prefix),
+                    "--K-values",
+                    "4,6,8",
+                    "--translation-fix",
+                    "--time-limit",
+                    str(time_limit),
+                    "--target-max",
+                    str(attempt["target_max"]),
+                    "--square-drop",
+                    str(attempt["square_drop"]),
+                ],
+                workdir,
+            )
+            return attempt
+        except subprocess.CalledProcessError:
+            continue
+    return None
 
 
 def read_json(path: Path) -> dict:
@@ -158,6 +183,8 @@ def main() -> int:
     parser.add_argument("--repair-beam-width", type=int, default=96)
     parser.add_argument("--repair-swap-pool-limit", type=int, default=256)
     parser.add_argument("--repair-endpoint-limit", type=int, default=20)
+    parser.add_argument("--repair-focus-top-unique", type=int, default=12)
+    parser.add_argument("--repair-fourier-top-unique", type=int, default=12)
     args = parser.parse_args()
 
     workdir = Path.cwd()
@@ -207,20 +234,11 @@ def main() -> int:
             workdir,
         )
         sq_prefix = base_prefix.with_name(base_prefix.name + f"_{ring.name}_sqcap")
-        run_cmd(
-            [
-                sys.executable,
-                "solve_bounded_pb_sqcap.py",
-                str(export_prefix.with_suffix(".json")),
-                "--output-prefix",
-                str(sq_prefix),
-                "--K-values",
-                "4,6,8",
-                "--translation-fix",
-                "--time-limit",
-                str(args.time_limit),
-            ],
+        solve_attempt = solve_sqcap_with_fallback(
+            export_prefix.with_suffix(".json"),
+            sq_prefix,
             workdir,
+            args.time_limit,
         )
         best_candidate = best_sqcap_candidate(sq_prefix)
         if best_candidate is None:
@@ -229,8 +247,10 @@ def main() -> int:
                     "ring": ring.name,
                     "focus_shifts": focus,
                     "status": "no_candidate",
+                    "solve_attempt": solve_attempt,
                 }
             )
+            persist([])
             continue
         key = checkpoint_key(best_candidate)
         ring_results.append(
@@ -238,6 +258,7 @@ def main() -> int:
                 "ring": ring.name,
                 "focus_shifts": focus,
                 "status": "ok",
+                "solve_attempt": solve_attempt,
                 "best_candidate": str(best_candidate),
                 "best_candidate_key": list(key),
             }
@@ -250,14 +271,24 @@ def main() -> int:
     promoted: list[dict[str, object]] = []
     for item in successful[: max(1, args.promote_count)]:
         candidate_path = Path(str(item["best_candidate"]))
+        candidate_payload = load_checkpoint(candidate_path)
+        candidate_state = np.array(candidate_payload["best_state"], dtype=np.int8)
+        candidate_node = build_node(candidate_state, signature)
+        promote_focus = dedupe_preserve_order(
+            list(item["focus_shifts"]) + top_unique_sds_shifts(candidate_node.combined, args.repair_focus_top_unique),
+            n,
+        )
+        promote_fourier = top_unique_fourier_reps(candidate_state, args.repair_fourier_top_unique)
         repair_path = candidate_path.with_name(candidate_path.stem.replace("_final", "_repair") + ".json")
         run_cmd(
             [
                 sys.executable,
                 "exact_sds_local_repair.py",
                 str(candidate_path),
-                "--focus-top-unique",
-                "12",
+                "--focus-shifts",
+                ",".join(str(v) for v in promote_focus),
+                "--fourier-frequencies",
+                ",".join(str(v) for v in promote_fourier),
                 "--depth",
                 str(max(1, args.repair_depth)),
                 "--beam-width",
@@ -278,6 +309,8 @@ def main() -> int:
         promoted_item = {
             "ring": item["ring"],
             "candidate": str(candidate_path),
+            "promote_focus_shifts": promote_focus,
+            "promote_fourier_frequencies": promote_fourier,
             "repair": str(repair_path),
             "repair_best_score": int(repair_payload["best_score"]),
             "repair_best_score_seen": int(repair_payload["best_score_seen"]),

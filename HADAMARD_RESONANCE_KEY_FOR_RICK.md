@@ -247,3 +247,106 @@ hybrid/local repair with a hard score cap.`
 - do not collapse warm-up assistance into core proof credit
 - do not widen the search randomly without preserving why the current lane stalled
 - do not let compaction erase the active artifact ladder; update this file when the rung changes
+
+## Local Update
+
+Local post-push method upgrade from the `2752` floor:
+
+- `exact_sds_local_repair.py` now supports a blended promotion objective with:
+  - explicit SDS focus shifts
+  - explicit indicator-Fourier focus frequencies
+- `run_ring_portfolio.py` now:
+  - keeps `mixed_6_6` in the portfolio
+  - adds a wider `mixed_12_12` family
+  - retries large exact rings with a controlled square-sum fallback instead of crashing
+- local portfolio summary:
+  - `runs/order_668_gs_17-17-9-3_root2752_portfolio_v5_summary.json`
+- result:
+  - `mixed_6_6` remains the best ring family
+  - `mixed_12_12` is now feasible under fallback (`target_max = 2`, `square_drop = 1`) but does not beat `mixed_6_6`
+  - blended promotion materially strengthens the winner seed:
+    - old promotion best from `mixed_6_6`: `4352`
+    - new blended promotion best from `mixed_6_6`: `3520`
+  - neither promotion beats the frozen `2752` floor
+
+## New Local Floor
+
+Local breakthrough after the blended floor-escape upgrade:
+
+- promoted local floor:
+  - `runs/order_668_gs_17-17-9-3_root2752_v5blend_floor_bestscore_2688_final.json`
+- current read:
+  - `best_score = 2688`
+  - `max_shift_violation = 12`
+  - `indicator_fourier_max_deviation = 39`
+- top unique SDS defects at the new floor:
+  - `49/118 -> +3`
+  - `71/96 -> +3`
+  - `1/166 -> -2`
+  - `8/159 -> -2`
+  - `34/133 -> +2`
+  - `41/126 -> +2`
+  - `70/97 -> -2`
+  - `73/94 -> +2`
+
+Local re-root from the new `2688` floor:
+
+- portfolio summary:
+  - `runs/order_668_gs_17-17-9-3_root2688_portfolio_v1_summary.json`
+- winner ordering changed:
+  - `mixed_12_12` is now the best exact-seed family from the `2688` floor
+  - `mixed_6_6` is second
+- exact seed results:
+  - `mixed_12_12 -> 4736`
+  - `mixed_6_6 -> 5312`
+  - `defect_top12 -> 5696`
+  - `fourier_top12 -> 6336`
+- promotion status:
+  - `mixed_12_12` deepens better than the other families, but current repairs still only touch `2688`; they do not beat it yet
+  - direct blended floor escapes from `2688` at `+256` and `+512` slack have not beaten the `2688` floor
+
+Operational read:
+
+- the blended surrogate upgrade is real; it created the `2688` floor
+- after re-rooting, `mixed_12_12` now looks like the leading exact-seed family
+- but `2688` is still the live floor until a repair or promotion actually crosses it
+
+## Newer Local Floor
+
+Meta-blended floor escape from the `2688` floor produced a real new floor:
+
+- source repair:
+  - `runs/order_668_gs_17-17-9-3_root2688_metablend_floor_repair_512slack.json`
+- promoted floor artifact:
+  - `runs/order_668_gs_17-17-9-3_root2688_metablend_floor_bestscore_2496_512slack_final.json`
+
+Current read at the `2496` floor:
+
+- `best_score = 2496`
+- `max_shift_violation = 8`
+- `indicator_fourier_max_deviation = 37`
+- top unique SDS defects:
+  - `2/165 -> -2`
+  - `3/164 -> -2`
+  - `18/149 -> +2`
+  - `19/148 -> -2`
+  - `21/146 -> -2`
+  - `29/138 -> -2`
+  - `39/128 -> -2`
+  - `69/98 -> +2`
+  - `73/94 -> -2`
+
+What produced the drop:
+
+- not a tiny ring by itself
+- not the pure Fourier sidecar by itself
+- the winning move was a meta-blended floor escape from `2688` combining:
+  - the `mixed_12_12` winner promotion surface
+  - the strengthened Fourier sidecar surface
+
+Operational reset:
+
+- `2496` is now the live local floor
+- the next coherent action is to re-root on `2496`
+- keep the harness upgraded for the wider mixed regime (`mixed_12_12`, `mixed_18_18`)
+- test the new floor before pushing anything

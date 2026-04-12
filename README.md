@@ -82,12 +82,24 @@ Current preserved artifact ladder:
     - `runs/order_668_gs_17-17-9-3_root2880_ring2_sqcap_bestscore_2752_final.json`
     - `best_score = 2752`
     - `max_shift_violation = 8`
-  - root-`2752` portfolio harness validation
+  - root-`2752` blended surrogate continuation
+    - `runs/order_668_gs_17-17-9-3_root2752_portfolio_v5_summary.json`
+    - blended floor escape from that floor:
+      - `runs/order_668_gs_17-17-9-3_root2752_v5blend_floor_bestscore_2688_final.json`
+    - `best_score = 2688`
+    - `max_shift_violation = 12`
+  - root-`2688` meta-blended continuation
+    - `runs/order_668_gs_17-17-9-3_root2688_portfolio_v2_summary.json`
+    - meta-blended floor escape from that floor:
+      - `runs/order_668_gs_17-17-9-3_root2688_metablend_floor_bestscore_2496_512slack_final.json`
+    - `best_score = 2496`
+    - `max_shift_violation = 8`
+  - root-`2496` portfolio harness validation
     - `run_ring_portfolio.py`
-    - `runs/order_668_gs_17-17-9-3_root2752_portfolio_v2_summary.json`
-    - portfolio winner: `mixed_6_6`
-    - promoted winner touches the `2752` floor but does not beat it
-      - `runs/order_668_gs_17-17-9-3_root2752_portfolio_v2_mixed_6_6_sqcap_K4_4608_bestscore_2752_final.json`
+    - `runs/order_668_gs_17-17-9-3_root2496_portfolio_v1_summary.json`
+    - portfolio winner: `mixed_18_18`
+    - promoted winner touches the `2496` floor but does not beat it
+      - `runs/order_668_gs_17-17-9-3_root2496_portfolio_v1_mixed_18_18_sqcap_K4_4736_bestscore_2496_final.json`
 
 So the current state is:
 
@@ -97,8 +109,14 @@ So the current state is:
   basin from `3328` down to `2880`
 - the root-`2880` ring-2 exact-to-local continuation has now pushed the local
   floor from `2880` down to `2752`
-- the first disciplined ring-portfolio pass from that `2752` floor says the
-  best default ring family is now `mixed_6_6`, not ad hoc one-off ring picking
+- the blended surrogate upgrade then pushed the local floor from `2752` down to
+  `2688`
+- the next meta-blended floor escape pushed the local floor from `2688` down to
+  `2496`
+- the portfolio winner has widened with the floor:
+  - `mixed_6_6` at `2752`
+  - `mixed_12_12` at `2688`
+  - `mixed_18_18` at `2496`
 - the work is not solved
 - the main remaining obstruction is still coupled SDS defect cancellation on the
   `668` frontier rung
@@ -126,6 +144,8 @@ The repo now carries two frontier lanes:
   - now supports a fixed-floor ring portfolio harness so multiple exact ring
     families can be tested from the same basin and ranked globally before
     promotion
+  - now supports blended promotion and floor escapes that combine SDS shift
+    focus with explicit indicator-Fourier frequencies
   - measures both periodic defect and SDS defect structure
   - keeps exact CSV verification as the final gate
 
@@ -139,15 +159,16 @@ The next movement for this repo is:
 - validate the toolchain cleanly on `428`
 - keep the stronger `668` GS/SDS basin as the active live lane
 - push coupled defect cancellation on the dominant SDS shift pairs
-- keep the exact repair layer under a hard score cap
+- keep the exact repair layer under a hard score cap, but allow blended
+  floor-escape slack when a frozen floor has clearly formed
 - use the corrected PB/ILP ring and hybrid exact-local cycle as the current
   exact rung
-- keep iterating from the `2752` floor instead of restarting from the older
-  `2880` or `3328` surfaces
+- keep iterating from the `2496` floor instead of restarting from the older
+  `2752`, `2880`, or `3328` surfaces
 - use the ring portfolio harness from the same frozen floor, then promote only
   the top `1-2` candidates into hybrid/local repair
-- treat `mixed_6_6` as the default portfolio winner until another ring family
-  beats it on true global score
+- treat `mixed_18_18` as the current default portfolio winner until another
+  ring family beats it on true global score
 - widen or tighten that exact export schedule before broadening the family
 - widen to broader construction families if this one stalls
 
@@ -238,10 +259,10 @@ Export a bounded PB/ILP instance from the live `3328` basin:
 python3 export_bounded_pb_ilp.py runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final.json --focus-top-unique 12 --endpoint-limit 12
 ```
 
-Run the default ring portfolio from the `2752` floor:
+Run the default ring portfolio from the `2496` floor:
 
 ```bash
-python3 run_ring_portfolio.py runs/order_668_gs_17-17-9-3_root2880_ring2_sqcap_bestscore_2752_final.json --output-prefix runs/order_668_gs_17-17-9-3_root2752_portfolio
+python3 run_ring_portfolio.py runs/order_668_gs_17-17-9-3_root2688_metablend_floor_bestscore_2496_512slack_final.json --output-prefix runs/order_668_gs_17-17-9-3_root2496_portfolio
 ```
 
 Run the monitored square-sum exact rung on a bounded PB/ILP export:
