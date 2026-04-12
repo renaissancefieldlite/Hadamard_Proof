@@ -122,6 +122,16 @@ For the next root-`2880` continuation:
   - `indicator_fourier_max_deviation = 33`
 - immediate zero-slack continuation from `2752` plateaued, so this is a real
   new basin, not just an interrupted partial step
+- a fixed-floor ring portfolio harness now exists:
+  - `run_ring_portfolio.py`
+- first portfolio validation from the `2752` floor is recorded at:
+  - `runs/order_668_gs_17-17-9-3_root2752_portfolio_v2_summary.json`
+- portfolio winner from that floor:
+  - `mixed_6_6`
+- promoted winner artifact:
+  - `runs/order_668_gs_17-17-9-3_root2752_portfolio_v2_mixed_6_6_sqcap_K4_4608_bestscore_2752_final.json`
+- that winner re-touches the `2752` floor but does not beat it, so the floor is
+  stable and the portfolio method is acting as a disciplined seed generator
 
 ## Meaning
 
@@ -137,6 +147,9 @@ The important repo-level change is:
   not just monitored-window improvements
 - the next root-`2880` exact-to-local cycle improved the live local floor again,
   from `2880` to `2752`
+- the next process improvement after that was methodological rather than numeric:
+  the repo now has a fixed-floor ring portfolio so multiple ring families can be
+  compared from the same basin before promotion
 - the work is not solved, but the frontier surface is stronger and cleaner than
   the earlier Williamson-only state
 
@@ -144,9 +157,12 @@ The important repo-level change is:
 
 The next clean rung after this note is:
 
-- continue bounded coupled repair from the `3328` basin
-- use the corrected ring-2 / hybrid exact-model cycle from the `2880` basin as
-  the active next rung until the local `2752` basin is either pushed or beaten
+- keep the `2752` basin as the frozen floor
+- use the `2752` ring portfolio harness as the default driver for new exact-ring
+  cycles
+- treat `mixed_6_6` as the default portfolio winner until another ring family
+  beats it on true global score
+- promote only the top `1-2` portfolio seeds into hybrid/local repair
 - if that cycle plateaus, widen the ring or change the surrogate before asking
   for a new reduction
 

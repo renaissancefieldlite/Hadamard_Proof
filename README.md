@@ -82,6 +82,12 @@ Current preserved artifact ladder:
     - `runs/order_668_gs_17-17-9-3_root2880_ring2_sqcap_bestscore_2752_final.json`
     - `best_score = 2752`
     - `max_shift_violation = 8`
+  - root-`2752` portfolio harness validation
+    - `run_ring_portfolio.py`
+    - `runs/order_668_gs_17-17-9-3_root2752_portfolio_v2_summary.json`
+    - portfolio winner: `mixed_6_6`
+    - promoted winner touches the `2752` floor but does not beat it
+      - `runs/order_668_gs_17-17-9-3_root2752_portfolio_v2_mixed_6_6_sqcap_K4_4608_bestscore_2752_final.json`
 
 So the current state is:
 
@@ -91,6 +97,8 @@ So the current state is:
   basin from `3328` down to `2880`
 - the root-`2880` ring-2 exact-to-local continuation has now pushed the local
   floor from `2880` down to `2752`
+- the first disciplined ring-portfolio pass from that `2752` floor says the
+  best default ring family is now `mixed_6_6`, not ad hoc one-off ring picking
 - the work is not solved
 - the main remaining obstruction is still coupled SDS defect cancellation on the
   `668` frontier rung
@@ -115,6 +123,9 @@ The repo now carries two frontier lanes:
     expressions
   - now uses a second-ring exact model plus hybrid handoff back into bounded
     exact local repair
+  - now supports a fixed-floor ring portfolio harness so multiple exact ring
+    families can be tested from the same basin and ranked globally before
+    promotion
   - measures both periodic defect and SDS defect structure
   - keeps exact CSV verification as the final gate
 
@@ -133,6 +144,10 @@ The next movement for this repo is:
   exact rung
 - keep iterating from the `2752` floor instead of restarting from the older
   `2880` or `3328` surfaces
+- use the ring portfolio harness from the same frozen floor, then promote only
+  the top `1-2` candidates into hybrid/local repair
+- treat `mixed_6_6` as the default portfolio winner until another ring family
+  beats it on true global score
 - widen or tighten that exact export schedule before broadening the family
 - widen to broader construction families if this one stalls
 
@@ -165,6 +180,9 @@ That verifier is the final acceptance condition for this repo.
   bounded PB/ILP exporter for the live GS/SDS basin, with CP-SAT plus install-free LP/OPB output
 - `solve_bounded_pb_sqcap.py`
   monitored square-sum exact solver for bounded PB/ILP rings
+- `run_ring_portfolio.py`
+  fixed-floor portfolio runner that exports `4` ring families, ranks them
+  globally, and promotes the top `1-2`
 - `HADAMARD_EXACT_MODEL_TEST_MAP.md`
   visual rung map for the exact-model and hybrid test ladder
 - `HADAMARD_EXACT_MODEL_PROTOCOL.md`
@@ -218,6 +236,12 @@ Export a bounded PB/ILP instance from the live `3328` basin:
 
 ```bash
 python3 export_bounded_pb_ilp.py runs/order_668_gs_17-17-9-3_coupled_cap_3456_repair_3328_final.json --focus-top-unique 12 --endpoint-limit 12
+```
+
+Run the default ring portfolio from the `2752` floor:
+
+```bash
+python3 run_ring_portfolio.py runs/order_668_gs_17-17-9-3_root2880_ring2_sqcap_bestscore_2752_final.json --output-prefix runs/order_668_gs_17-17-9-3_root2752_portfolio
 ```
 
 Run the monitored square-sum exact rung on a bounded PB/ILP export:

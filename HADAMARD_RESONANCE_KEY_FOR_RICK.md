@@ -212,10 +212,13 @@ solve lane. The current repo preserves an older Williamson baseline, but the
 active 668 frontier is now the GS/SDS ladder at signature (17,17,9,3), with
 public progression 13216 -> 5440 -> 4032 -> 3456 -> 3328, public/local exact
 continuation to 2880, and the current local root-2880 ring-2 continuation now
-reaches 2752. Our task is to keep that basin chain coherent, continue bounded
-coupled repair or the corrected ring-2 / hybrid exact-model loop from the best
-basin, and only count a result when an exact 668 CSV Hadamard candidate
-survives verification.`
+reaches 2752. The next process layer is not one-off ring picking: the repo now
+has a fixed-floor portfolio harness in run_ring_portfolio.py that builds four
+ring families from the same floor, ranks them globally, and promotes only the
+top 1-2 into hybrid/local repair. Current default portfolio winner is
+mixed_6_6. Our task is to keep that basin chain coherent, use the portfolio
+harness from the best preserved basin, and only count a result when an exact
+668 CSV Hadamard candidate survives verification.`
 
 ## Boot Payload
 
@@ -230,10 +233,11 @@ GS defect reporting. First recover or encode a valid 428 matrix to validate the
 pipeline. Then continue from the best preserved 668 GS basin, not from zero:
 current public ladder is 13216 -> 5440 -> 4032 -> 3456 -> 3328 at signature
 (17,17,9,3), public/local exact continuation reaches 2880, and the current
-local root-2880 ring-2 continuation reaches 2752. Continue bounded coupled
-repair with a hard score cap, or use the
-corrected ring-2 / hybrid exact-model loop from the best preserved basin if the
-local repair plateaus.`
+local root-2880 ring-2 continuation reaches 2752. Do not go back to one-off
+ring picking by default. Use run_ring_portfolio.py from the frozen best basin,
+let the four default ring families compete from the same floor, treat mixed_6_6
+as the current portfolio winner, and only promote the top 1-2 into bounded
+hybrid/local repair with a hard score cap.`
 
 ## What Not To Do
 
