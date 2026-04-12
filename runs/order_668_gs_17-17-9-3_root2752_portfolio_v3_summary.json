@@ -1,0 +1,114 @@
+{
+  "floor_checkpoint": "runs/order_668_gs_17-17-9-3_root2880_ring2_sqcap_bestscore_2752_final.json",
+  "floor_score": 2752,
+  "rings": [
+    {
+      "ring": "defect_top12",
+      "focus_shifts": [
+        5,
+        27,
+        34,
+        36,
+        40,
+        44,
+        47,
+        50,
+        56,
+        64,
+        70,
+        71
+      ],
+      "status": "ok",
+      "best_candidate": "runs/order_668_gs_17-17-9-3_root2752_portfolio_v3_defect_top12_sqcap_K8_5888_final.json",
+      "best_candidate_key": [
+        5888,
+        16,
+        54
+      ]
+    },
+    {
+      "ring": "defect_top6",
+      "focus_shifts": [
+        5,
+        27,
+        34,
+        36,
+        40,
+        44
+      ],
+      "status": "ok",
+      "best_candidate": "runs/order_668_gs_17-17-9-3_root2752_portfolio_v3_defect_top6_sqcap_K6_5888_final.json",
+      "best_candidate_key": [
+        5888,
+        16,
+        40
+      ]
+    },
+    {
+      "ring": "fourier_top12",
+      "focus_shifts": [
+        29,
+        75,
+        42,
+        80,
+        12,
+        67,
+        3,
+        21,
+        9,
+        39,
+        27,
+        8
+      ],
+      "status": "ok",
+      "best_candidate": "runs/order_668_gs_17-17-9-3_root2752_portfolio_v3_fourier_top12_sqcap_K8_5760_final.json",
+      "best_candidate_key": [
+        5760,
+        16,
+        55
+      ]
+    },
+    {
+      "ring": "mixed_6_6",
+      "focus_shifts": [
+        5,
+        27,
+        34,
+        36,
+        40,
+        44,
+        29,
+        75,
+        42,
+        80,
+        12,
+        67
+      ],
+      "status": "ok",
+      "best_candidate": "runs/order_668_gs_17-17-9-3_root2752_portfolio_v3_mixed_6_6_sqcap_K4_4608_final.json",
+      "best_candidate_key": [
+        4608,
+        12,
+        49
+      ]
+    }
+  ],
+  "promoted": [
+    {
+      "ring": "mixed_6_6",
+      "candidate": "runs/order_668_gs_17-17-9-3_root2752_portfolio_v3_mixed_6_6_sqcap_K4_4608_final.json",
+      "repair": "runs/order_668_gs_17-17-9-3_root2752_portfolio_v3_mixed_6_6_sqcap_K4_4608_repair.json",
+      "repair_best_score": 4352,
+      "repair_best_score_seen": 2752,
+      "promoted_path": "runs/order_668_gs_17-17-9-3_root2752_portfolio_v3_mixed_6_6_sqcap_K4_4608_bestscore_2752_final.json"
+    },
+    {
+      "ring": "fourier_top12",
+      "candidate": "runs/order_668_gs_17-17-9-3_root2752_portfolio_v3_fourier_top12_sqcap_K8_5760_final.json",
+      "repair": "runs/order_668_gs_17-17-9-3_root2752_portfolio_v3_fourier_top12_sqcap_K8_5760_repair.json",
+      "repair_best_score": 5440,
+      "repair_best_score_seen": 2752,
+      "promoted_path": "runs/order_668_gs_17-17-9-3_root2752_portfolio_v3_fourier_top12_sqcap_K8_5760_bestscore_2752_final.json"
+    }
+  ]
+}
