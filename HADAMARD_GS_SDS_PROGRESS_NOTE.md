@@ -170,6 +170,18 @@ For the first portfolio validation from the `2496` floor:
 - the winner re-touches the `2496` floor but does not beat it, so `2496` is the
   current stable local frontier
 
+For the next surrogate upgrade after the `2496` floor:
+
+- exporter-time hard-capped guard shifts were added to the PB/ILP path so seed
+  quality can be constrained before late repair
+- first guarded `2496` validation improved some exact seeds early, especially
+  the Fourier-led side, but strict guarded `mixed_18_18` also showed that the
+  cap schedule can freeze the seed if it is too rigid
+- current read:
+  - hard caps earlier are the right direction
+  - the next rung is staged guard-cap tuning, not just wider rings or more
+    Fourier pressure
+
 ## Meaning
 
 The important repo-level change is:

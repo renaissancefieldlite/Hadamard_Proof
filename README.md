@@ -139,6 +139,8 @@ The repo now carries two frontier lanes:
   - uses checkpoint resume, exact one-swap polish, and coupled capped repair
   - now exports bounded PB/ILP instances over compressed monitored shift
     expressions
+  - now supports exporter-time hard-capped guard shifts so seed quality can be
+    shaped before late local repair
   - now uses a second-ring exact model plus hybrid handoff back into bounded
     exact local repair
   - now supports a fixed-floor ring portfolio harness so multiple exact ring
@@ -170,6 +172,8 @@ The next movement for this repo is:
 - treat `mixed_18_18` as the current default portfolio winner until another
   ring family beats it on true global score
 - widen or tighten that exact export schedule before broadening the family
+- tune staged guard-cap schedules at the exporter/portfolio layer so leakage is
+  blocked before the seed shape is already wrong
 - widen to broader construction families if this one stalls
 
 The repo is therefore meant to show:
@@ -199,8 +203,9 @@ That verifier is the final acceptance condition for this repo.
   bounded coupled exact repair over selected SDS shift sets
 - `export_bounded_pb_ilp.py`
   bounded PB/ILP exporter for the live GS/SDS basin, with CP-SAT plus install-free LP/OPB output
+  and optional hard-capped guard shifts
 - `solve_bounded_pb_sqcap.py`
-  monitored square-sum exact solver for bounded PB/ILP rings
+  monitored square-sum exact solver for bounded PB/ILP rings, including guard-shift caps
 - `run_ring_portfolio.py`
   fixed-floor portfolio runner that exports `4` ring families, ranks them
   globally, and promotes the top `1-2`

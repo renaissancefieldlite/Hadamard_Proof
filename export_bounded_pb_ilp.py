@@ -15,6 +15,7 @@ from exact_sds_local_repair import (
     load_checkpoint,
     sds_deltas_for_shifts,
     top_unique_sds_shifts,
+    top_unique_sds_shifts_excluding,
 )
 from goethals_seidel_search import normalize_focus_shifts, sds_lambda_from_signature, signature_to_negative_counts
 
@@ -47,6 +48,36 @@ def dedupe_preserve_order(values: list[int]) -> list[int]:
     return ordered
 
 
+def build_guard_caps(
+    node,
+    focus_shifts: list[int],
+    global_top_unique: int,
+    halo_top_unique: int,
+    global_cap_slack: int,
+    halo_cap_slack: int,
+) -> dict[int, int]:
+    guard_caps: dict[int, int] = {}
+    focus_set = set(focus_shifts)
+
+    if global_top_unique > 0:
+        for shift in top_unique_sds_shifts(node.combined, global_top_unique):
+            if shift in focus_set:
+                continue
+            cap = abs(int(node.combined[shift] // 4)) + max(0, int(global_cap_slack))
+            if shift not in guard_caps or cap < guard_caps[shift]:
+                guard_caps[shift] = int(cap)
+
+    if halo_top_unique > 0:
+        for shift in top_unique_sds_shifts_excluding(node.combined, focus_shifts, halo_top_unique):
+            if shift in focus_set:
+                continue
+            cap = abs(int(node.combined[shift] // 4)) + max(0, int(halo_cap_slack))
+            if shift not in guard_caps or cap < guard_caps[shift]:
+                guard_caps[shift] = int(cap)
+
+    return guard_caps
+
+
 def var_x(row_idx: int, g: int) -> str:
     return f"x_r{row_idx}_g{g}"
 
@@ -66,7 +97,7 @@ def var_u(shift: int) -> str:
 def compress_shift_expressions(
     occupancy: list[list[int]],
     free: set[tuple[int, int]],
-    focus_shifts: list[int],
+    monitored_shifts: list[int],
     n: int,
     sds_lambda: int,
 ) -> dict[str, dict[str, object]]:
@@ -76,10 +107,10 @@ def compress_shift_expressions(
             "linear_terms": {},
             "quadratic_terms": {},
         }
-        for shift in focus_shifts
+        for shift in monitored_shifts
     }
 
-    for shift in focus_shifts:
+    for shift in monitored_shifts:
         expr = expressions[str(shift)]
         linear_terms: dict[tuple[int, int], int] = expr["linear_terms"]  # type: ignore[assignment]
         quadratic_terms: dict[tuple[int, int, int], int] = expr["quadratic_terms"]  # type: ignore[assignment]
@@ -158,21 +189,25 @@ def write_lp_text(spec: dict, tier: list[int | None], path: Path) -> None:
     n = int(spec["n"])
     blocks = int(spec["blocks"])
     focus_shifts = [int(t) for t in spec["focus_shifts"]]
+    guard_shifts = [int(t) for t in spec.get("guard_shifts", [])]
+    monitored_shifts = dedupe_preserve_order(focus_shifts + guard_shifts)
     occupancy = spec["occupancy"]
     block_sizes = [int(v) for v in spec["block_sizes"]]
     weights = {int(k): int(v) for k, v in spec["weights"].items()}
     pool = [tuple(item) for item in spec["candidate_pool"]]
     free = {(int(row_idx), int(g)) for row_idx, g in pool}
     shift_expressions = spec["shift_expressions"]
+    focus_set = set(focus_shifts)
+    guard_caps = {int(k): int(v) for k, v in spec.get("guard_abs_caps", {}).items()}
 
     binary_vars = [var_x(int(row_idx), int(g)) for row_idx, g in pool]
     binary_vars.extend(
         var_p(int(item["row"]), int(item["g"]), int(item["partner"]), shift)
-        for shift in focus_shifts
+        for shift in monitored_shifts
         for item in shift_expressions[str(shift)]["quadratic_terms"]
     )
-    general_vars = [var_d(shift) for shift in focus_shifts]
-    general_vars.extend(var_u(shift) for shift in focus_shifts)
+    general_vars = [var_d(shift) for shift in monitored_shifts]
+    general_vars.extend(var_u(shift) for shift in monitored_shifts)
     general_vars.extend(["M", "F"])
 
     lines = ["Minimize", " obj: M", "Subject To"]
@@ -182,7 +217,7 @@ def write_lp_text(spec: dict, tier: list[int | None], path: Path) -> None:
         lhs = lp_expr_from_terms([(1, var_x(int(i), int(g))) for i, g in pool if int(i) == row_idx])
         lines.append(f" block_size_{row_idx}: {lhs} = {block_sizes[row_idx] - fixed_total}")
 
-    for shift in focus_shifts:
+    for shift in monitored_shifts:
         expr = shift_expressions[str(shift)]
         for item in expr["quadratic_terms"]:
             pname = var_p(int(item["row"]), int(item["g"]), int(item["partner"]), shift)
@@ -207,8 +242,11 @@ def write_lp_text(spec: dict, tier: list[int | None], path: Path) -> None:
         )
         lines.append(f" abs_pos_{shift}: {var_d(shift)} - {var_u(shift)} <= 0")
         lines.append(f" abs_neg_{shift}: - {var_d(shift)} - {var_u(shift)} <= 0")
-        lines.append(f" max_def_{shift}: {var_u(shift)} - M <= 0")
-        lines.append(f" cap_{shift}: {var_u(shift)} <= {int(get_mapping_value(spec['current_abs_deltas'], shift))}")
+        if shift in focus_set:
+            lines.append(f" max_def_{shift}: {var_u(shift)} - M <= 0")
+            lines.append(f" cap_{shift}: {var_u(shift)} <= {int(get_mapping_value(spec['current_abs_deltas'], shift))}")
+        else:
+            lines.append(f" guard_cap_{shift}: {var_u(shift)} <= {int(guard_caps[shift])}")
 
     if force_M_le is not None:
         lines.append(f" tier_M_cap: M <= {int(force_M_le)}")
@@ -225,7 +263,7 @@ def write_lp_text(spec: dict, tier: list[int | None], path: Path) -> None:
     lines.append(f" flip_cap: F <= {int(K)}")
 
     lines.append("Bounds")
-    for shift in focus_shifts:
+    for shift in monitored_shifts:
         lines.append(f" {var_d(shift)} free")
         lines.append(f" 0 <= {var_u(shift)}")
     lines.append(" 0 <= M")
@@ -243,21 +281,25 @@ def write_opb_text(spec: dict, tier: list[int | None], path: Path) -> None:
     n = int(spec["n"])
     blocks = int(spec["blocks"])
     focus_shifts = [int(t) for t in spec["focus_shifts"]]
+    guard_shifts = [int(t) for t in spec.get("guard_shifts", [])]
+    monitored_shifts = dedupe_preserve_order(focus_shifts + guard_shifts)
     occupancy = spec["occupancy"]
     block_sizes = [int(v) for v in spec["block_sizes"]]
     weights = {int(k): int(v) for k, v in spec["weights"].items()}
     pool = [tuple(item) for item in spec["candidate_pool"]]
     free = {(int(row_idx), int(g)) for row_idx, g in pool}
     shift_expressions = spec["shift_expressions"]
+    focus_set = set(focus_shifts)
+    guard_caps = {int(k): int(v) for k, v in spec.get("guard_abs_caps", {}).items()}
 
     binary_vars = [var_x(int(row_idx), int(g)) for row_idx, g in pool]
     binary_vars.extend(
         var_p(int(item["row"]), int(item["g"]), int(item["partner"]), shift)
-        for shift in focus_shifts
+        for shift in monitored_shifts
         for item in shift_expressions[str(shift)]["quadratic_terms"]
     )
-    int_vars = [var_d(shift) for shift in focus_shifts]
-    int_vars.extend(var_u(shift) for shift in focus_shifts)
+    int_vars = [var_d(shift) for shift in monitored_shifts]
+    int_vars.extend(var_u(shift) for shift in monitored_shifts)
     int_vars.extend(["M", "F"])
 
     constraints: list[str] = []
@@ -267,7 +309,7 @@ def write_opb_text(spec: dict, tier: list[int | None], path: Path) -> None:
         terms = [(1, var_x(int(i), int(g))) for i, g in pool if int(i) == row_idx]
         constraints.append(f"{opb_terms_from_pairs(terms)} = {block_sizes[row_idx] - fixed_total} ;")
 
-    for shift in focus_shifts:
+    for shift in monitored_shifts:
         expr = shift_expressions[str(shift)]
         for item in expr["quadratic_terms"]:
             pname = var_p(int(item["row"]), int(item["g"]), int(item["partner"]), shift)
@@ -288,8 +330,11 @@ def write_opb_text(spec: dict, tier: list[int | None], path: Path) -> None:
         constraints.append(f"{opb_terms_from_pairs(terms)} = {int(expr['base_minus_lambda'])} ;")
         constraints.append(f"1 {var_d(shift)} -1 {var_u(shift)} <= 0 ;")
         constraints.append(f"-1 {var_d(shift)} -1 {var_u(shift)} <= 0 ;")
-        constraints.append(f"1 {var_u(shift)} -1 M <= 0 ;")
-        constraints.append(f"1 {var_u(shift)} <= {int(get_mapping_value(spec['current_abs_deltas'], shift))} ;")
+        if shift in focus_set:
+            constraints.append(f"1 {var_u(shift)} -1 M <= 0 ;")
+            constraints.append(f"1 {var_u(shift)} <= {int(get_mapping_value(spec['current_abs_deltas'], shift))} ;")
+        else:
+            constraints.append(f"1 {var_u(shift)} <= {int(guard_caps[shift])} ;")
 
     if force_M_le is not None:
         constraints.append(f"1 M <= {int(force_M_le)} ;")
@@ -339,7 +384,10 @@ def build_model(spec: dict, K: int, force_M_le: int | None = None, weighted_cap:
     n = int(spec["n"])
     blocks = int(spec["blocks"])
     focus_shifts = [int(t) for t in spec["focus_shifts"]]
+    guard_shifts = [int(t) for t in spec.get("guard_shifts", [])]
+    monitored_shifts = list(dict.fromkeys(focus_shifts + guard_shifts))
     weights = {{int(k): int(v) for k, v in spec["weights"].items()}}
+    guard_caps = {{int(k): int(v) for k, v in spec.get("guard_abs_caps", {{}}).items()}}
     c = spec["occupancy"]
     k = [int(v) for v in spec["block_sizes"]]
     pool = [tuple(item) for item in spec["candidate_pool"]]
@@ -353,7 +401,7 @@ def build_model(spec: dict, K: int, force_M_le: int | None = None, weighted_cap:
 
     shift_exprs = spec["shift_expressions"]
     p = {{}}
-    for t in focus_shifts:
+    for t in monitored_shifts:
         for item in shift_exprs[str(t)]["quadratic_terms"]:
             row_idx = int(item["row"])
             g = int(item["g"])
@@ -373,11 +421,11 @@ def build_model(spec: dict, K: int, force_M_le: int | None = None, weighted_cap:
     d = {{}}
     u = {{}}
     M = model.NewIntVar(0, 1000, "M")
-    for t in focus_shifts:
+    for t in monitored_shifts:
         d[t] = model.NewIntVar(-1000, 1000, f"d_{{t}}")
         u[t] = model.NewIntVar(0, 1000, f"u_{{t}}")
 
-    for t in focus_shifts:
+    for t in monitored_shifts:
         shift_expr = shift_exprs[str(t)]
         expr = int(shift_expr["base_minus_lambda"])
         for item in shift_expr["linear_terms"]:
@@ -387,8 +435,11 @@ def build_model(spec: dict, K: int, force_M_le: int | None = None, weighted_cap:
         model.Add(d[t] == expr)
         model.Add(d[t] <= u[t])
         model.Add(-d[t] <= u[t])
-        model.Add(u[t] <= int(spec["current_abs_deltas"][str(t)]))
-        model.Add(u[t] <= M)
+        if t in focus_shifts:
+            model.Add(u[t] <= int(spec["current_abs_deltas"][str(t)]))
+            model.Add(u[t] <= M)
+        else:
+            model.Add(u[t] <= int(guard_caps[t]))
 
     if force_M_le is not None:
         model.Add(M <= int(force_M_le))
@@ -454,6 +505,10 @@ def main() -> int:
     parser.add_argument("checkpoint_path", type=Path)
     parser.add_argument("--focus-shifts", type=str, default="")
     parser.add_argument("--focus-top-unique", type=int, default=12)
+    parser.add_argument("--guard-global-top-unique", type=int, default=0)
+    parser.add_argument("--guard-halo-top-unique", type=int, default=0)
+    parser.add_argument("--guard-global-cap-slack", type=int, default=0)
+    parser.add_argument("--guard-halo-cap-slack", type=int, default=0)
     parser.add_argument("--endpoint-limit", type=int, default=12)
     parser.add_argument("--output-prefix", type=Path)
     args = parser.parse_args()
@@ -480,6 +535,16 @@ def main() -> int:
     occupancy = ((state == -1).astype(int)).tolist()
     block_sizes = signature_to_negative_counts(signature, n)
     sds_lambda = sds_lambda_from_signature(signature, n)
+    guard_caps = build_guard_caps(
+        node,
+        focus_shifts,
+        max(0, args.guard_global_top_unique),
+        max(0, args.guard_halo_top_unique),
+        max(0, args.guard_global_cap_slack),
+        max(0, args.guard_halo_cap_slack),
+    )
+    guard_shifts = dedupe_preserve_order(list(guard_caps))
+    monitored_shifts = dedupe_preserve_order(focus_shifts + guard_shifts)
     ranked_pairs = sorted(
         zip(focus_shifts, focus_deltas, strict=True),
         key=lambda item: (-abs(item[1]), item[0]),
@@ -492,7 +557,7 @@ def main() -> int:
     shift_expressions = compress_shift_expressions(
         occupancy=occupancy,
         free=free,
-        focus_shifts=focus_shifts,
+        monitored_shifts=monitored_shifts,
         n=n,
         sds_lambda=sds_lambda,
     )
@@ -520,6 +585,8 @@ def main() -> int:
         "source_checkpoint": str(args.checkpoint_path),
         "focus_shifts": focus_shifts,
         "focus_deltas": focus_deltas,
+        "guard_shifts": guard_shifts,
+        "guard_abs_caps": guard_caps,
         "current_abs_deltas": current_abs,
         "weights": weights,
         "current_weighted_sum": int(current_weighted),
@@ -532,7 +599,7 @@ def main() -> int:
         "notes": {
             "indicator_fourier_target_nontrivial": int(n),
             "sequence_psd_target_nontrivial": int(4 * n),
-            "description": "Bounded occupancy PB/ILP export over ranked endpoint pool and unique monitored shifts.",
+            "description": "Bounded occupancy PB/ILP export over ranked endpoint pool with focus shifts and optional hard-capped guard shifts.",
         },
     }
     spec_path.write_text(json.dumps(spec, indent=2), encoding="utf-8")
@@ -545,6 +612,8 @@ def main() -> int:
     print(f"solver={solver_path}")
     print(f"focus_shifts={focus_shifts}")
     print(f"focus_deltas={focus_deltas}")
+    print(f"guard_shifts={guard_shifts}")
+    print(f"guard_abs_caps={guard_caps}")
     print(f"candidate_pool_row_positions={len(candidate_pool)}")
     print(f"candidate_pool_group_positions={len({g for _, g in candidate_pool})}")
     print(f"current_weighted_sum={current_weighted}")

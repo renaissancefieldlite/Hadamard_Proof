@@ -31,8 +31,11 @@ def build_model(
     n = int(spec["n"])
     blocks = int(spec["blocks"])
     focus_shifts = [int(t) for t in spec["focus_shifts"]]
+    guard_shifts = [int(t) for t in spec.get("guard_shifts", [])]
+    monitored_shifts = list(dict.fromkeys(focus_shifts + guard_shifts))
     c = spec["occupancy"]
     k = [int(v) for v in spec["block_sizes"]]
+    guard_caps = {int(k): int(v) for k, v in spec.get("guard_abs_caps", {}).items()}
     pool = [tuple(item) for item in spec["candidate_pool"]]
     free = [[False] * n for _ in range(blocks)]
     for row_idx, g in pool:
@@ -51,7 +54,7 @@ def build_model(
 
     shift_exprs = spec["shift_expressions"]
     p: dict[tuple[int, int, int, int], cp_model.IntVar] = {}
-    for t in focus_shifts:
+    for t in monitored_shifts:
         for item in shift_exprs[str(t)]["quadratic_terms"]:
             row_idx = int(item["row"])
             g = int(item["g"])
@@ -71,13 +74,14 @@ def build_model(
     u: dict[int, cp_model.IntVar] = {}
     sq: dict[int, cp_model.IntVar] = {}
     M = model.NewIntVar(0, 1000, "M")
-    for t in focus_shifts:
+    for t in monitored_shifts:
         d[t] = model.NewIntVar(-1000, 1000, f"d_{t}")
         u[t] = model.NewIntVar(0, 1000, f"u_{t}")
-        max_u = int(spec["current_abs_deltas"][str(t)])
-        sq[t] = model.NewIntVar(0, max_u * max_u, f"sq_{t}")
+        if t in focus_shifts:
+            max_u = int(spec["current_abs_deltas"][str(t)])
+            sq[t] = model.NewIntVar(0, max_u * max_u, f"sq_{t}")
 
-    for t in focus_shifts:
+    for t in monitored_shifts:
         shift_expr = shift_exprs[str(t)]
         expr = int(shift_expr["base_minus_lambda"])
         for item in shift_expr["linear_terms"]:
@@ -87,9 +91,12 @@ def build_model(
         model.Add(d[t] == expr)
         model.Add(d[t] <= u[t])
         model.Add(-d[t] <= u[t])
-        model.Add(u[t] <= int(spec["current_abs_deltas"][str(t)]))
-        model.Add(u[t] <= M)
-        model.AddMultiplicationEquality(sq[t], [u[t], u[t]])
+        if t in focus_shifts:
+            model.Add(u[t] <= int(spec["current_abs_deltas"][str(t)]))
+            model.Add(u[t] <= M)
+            model.AddMultiplicationEquality(sq[t], [u[t], u[t]])
+        else:
+            model.Add(u[t] <= int(guard_caps[t]))
 
     if force_M_le is not None:
         model.Add(M <= int(force_M_le))
@@ -238,6 +245,12 @@ def write_candidate(
             str(int(t)): int(solution["solver"].Value(solution["u"][int(t)]))
             for t in spec["focus_shifts"]
         },
+        "pb_ilp_guard_shifts": [int(t) for t in spec.get("guard_shifts", [])],
+        "pb_ilp_guard_abs_caps": {str(k): int(v) for k, v in spec.get("guard_abs_caps", {}).items()},
+        "pb_ilp_guard_abs_defects": {
+            str(int(t)): int(solution["solver"].Value(solution["u"][int(t)]))
+            for t in spec.get("guard_shifts", [])
+        },
         "pb_ilp_monitored_square_sum": int(solution["solver"].Value(solution["square_sum"])),
         "indicator_fourier_target": int(scored["fourier_target"]),
         "indicator_fourier_max_deviation": int(scored["fourier_max_dev"]),
@@ -274,6 +287,7 @@ def main() -> int:
     signature = tuple(int(v) for v in payload["signature"])
 
     focus_shifts = [int(t) for t in spec["focus_shifts"]]
+    guard_shifts = [int(t) for t in spec.get("guard_shifts", [])]
     current_abs = [int(spec["current_abs_deltas"][str(t)]) for t in focus_shifts]
     base_sq = sum(value * value for value in current_abs)
     current_max = max(current_abs, default=0)
@@ -284,6 +298,7 @@ def main() -> int:
 
     print(f"source_checkpoint={source_checkpoint}")
     print(f"focus_shifts={focus_shifts}")
+    print(f"guard_shifts={guard_shifts}")
     print(f"current_abs={current_abs}")
     print(f"base_square_sum={base_sq}")
     print(f"target_max={target_max}")

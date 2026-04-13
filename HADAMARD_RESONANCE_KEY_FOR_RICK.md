@@ -350,3 +350,70 @@ Operational reset:
 - the next coherent action is to re-root on `2496`
 - keep the harness upgraded for the wider mixed regime (`mixed_12_12`, `mixed_18_18`)
 - test the new floor before pushing anything
+
+## Post-Push `2496` Read
+
+Public floor is still:
+
+- `runs/order_668_gs_17-17-9-3_root2688_metablend_floor_bestscore_2496_512slack_final.json`
+
+Local winner-family update from the re-rooted `2496` portfolio:
+
+- `mixed_18_18` overtook `mixed_12_12` as the best exact-seed family at this floor
+- initial exact-seed ranking from `root2496_portfolio_v1`:
+  - `mixed_18_18 -> 4736`
+  - `mixed_12_12 -> 5376`
+  - `defect_top12 -> 6144`
+  - `fourier_top12 -> 7104`
+- direct meta-blended floor escapes from `2496` have not yet broken the floor
+
+## Hard-Cap Exporter Experiment
+
+Key lesson from the latest local work: hard anti-leak caps need to reach the PB/ILP seed stage, not only the late local repair stage.
+
+New code path:
+
+- `export_bounded_pb_ilp.py` now supports exporter-time guard shifts:
+  - `--guard-global-top-unique`
+  - `--guard-halo-top-unique`
+  - `--guard-global-cap-slack`
+  - `--guard-halo-cap-slack`
+- `solve_bounded_pb_sqcap.py` enforces those guard caps as hard per-shift bounds
+- `run_ring_portfolio.py` now threads those exporter guard settings through the ring harness
+
+First guarded `2496` validation:
+
+- guarded portfolio summary:
+  - `runs/order_668_gs_17-17-9-3_root2496_portfolio_guardv1_summary.json`
+- config used:
+  - `export_guard_global_top_unique = 12`
+  - `export_guard_halo_top_unique = 12`
+  - `export_guard_global_cap_slack = 0`
+  - `export_guard_halo_cap_slack = 1`
+
+Important result:
+
+- guarded `fourier_top12` exact seed improved sharply:
+  - `runs/order_668_gs_17-17-9-3_root2496_portfolio_guardv1_fourier_top12_sqcap_K8_3840_final.json`
+- that is much stronger than the older unguarded `root2496` Fourier seed (`7104`)
+
+Important counter-result:
+
+- guarded `mixed_18_18` can freeze if the guard schedule is too strict
+- direct guarded `mixed_18_18` check with guard slacks `(global=1, halo=2)` and required square-drop still gave:
+  - no feasible `K` under the square-sum rung
+- if square-drop is removed, the solver returns the trivial no-move floor state
+
+Operational read:
+
+- pushing hard caps earlier into the seed stage is the right direction
+- they are already changing seed quality before promotion
+- but they also introduce a new tuning problem:
+  - too strict -> exact seed freezes
+  - too loose -> old scout leakage returns
+- next coherent work is to tune or stage guard-cap schedules around the `2496` floor rather than just widening rings
+
+Continuity marker:
+
+- next unresolved representative in the current sign-reduced height ordering:
+  - `(92, 312, 8)`

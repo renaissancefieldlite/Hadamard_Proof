@@ -144,18 +144,79 @@ def top_unique_sds_shifts(combined: np.ndarray, limit: int) -> list[int]:
     return [shift for shift, _ in ranked[:limit]]
 
 
+def top_unique_sds_shifts_excluding(combined: np.ndarray, excluded_shifts: list[int], limit: int) -> list[int]:
+    if limit <= 0:
+        return []
+    excluded = {min(int(shift), len(combined) - int(shift)) for shift in excluded_shifts}
+    seen: set[int] = set()
+    ranked: list[tuple[int, int]] = []
+    n = len(combined)
+    for shift in range(1, n):
+        rep = min(shift, n - shift)
+        if rep in excluded or rep in seen:
+            continue
+        seen.add(rep)
+        value = int(combined[rep])
+        if value == 0:
+            continue
+        ranked.append((rep, abs(value)))
+    ranked.sort(key=lambda item: (-item[1], item[0]))
+    return [shift for shift, _ in ranked[:limit]]
+
+
+def defect_stats(values: list[int]) -> tuple[int, int]:
+    max_value = max((abs(value) for value in values), default=0)
+    penalty = sum(value * value for value in values)
+    return int(max_value), int(penalty)
+
+
+def surrogate_stats(
+    node: RepairNode,
+    focus_shifts: list[int],
+    global_top_unique: int = 0,
+    halo_top_unique: int = 0,
+) -> dict[str, int]:
+    focus_values = sds_deltas_for_shifts(node.combined, focus_shifts)
+    focus_max, focus_penalty = defect_stats(focus_values)
+    stats = {
+        "focus_max": int(focus_max),
+        "focus_penalty": int(focus_penalty),
+        "global_max": 0,
+        "global_penalty": 0,
+        "halo_max": 0,
+        "halo_penalty": 0,
+    }
+    if global_top_unique > 0:
+        global_shifts = top_unique_sds_shifts(node.combined, global_top_unique)
+        global_values = sds_deltas_for_shifts(node.combined, global_shifts)
+        global_max, global_penalty = defect_stats(global_values)
+        stats["global_max"] = int(global_max)
+        stats["global_penalty"] = int(global_penalty)
+    if halo_top_unique > 0:
+        halo_shifts = top_unique_sds_shifts_excluding(node.combined, focus_shifts, halo_top_unique)
+        halo_values = sds_deltas_for_shifts(node.combined, halo_shifts)
+        halo_max, halo_penalty = defect_stats(halo_values)
+        stats["halo_max"] = int(halo_max)
+        stats["halo_penalty"] = int(halo_penalty)
+    return stats
+
+
 def objective_for_node(
     node: RepairNode,
     focus_shifts: list[int],
     fourier_frequencies: list[int] | None = None,
+    global_top_unique: int = 0,
+    halo_top_unique: int = 0,
 ) -> tuple[int, ...]:
-    focus_values = sds_deltas_for_shifts(node.combined, focus_shifts)
-    focus_max = max((abs(value) for value in focus_values), default=0)
-    focus_penalty = sum(value * value for value in focus_values)
+    stats = surrogate_stats(node, focus_shifts, global_top_unique, halo_top_unique)
     objective: list[int] = [
-        int(focus_max),
-        int(focus_penalty),
+        int(stats["focus_max"]),
+        int(stats["focus_penalty"]),
     ]
+    if global_top_unique > 0:
+        objective.extend([int(stats["global_max"]), int(stats["global_penalty"])])
+    if halo_top_unique > 0:
+        objective.extend([int(stats["halo_max"]), int(stats["halo_penalty"])])
     if fourier_frequencies:
         fourier_values = indicator_fourier_deviations_for_frequencies(node.state, fourier_frequencies)
         fourier_max = max((abs(value) for value in fourier_values), default=0)
@@ -200,6 +261,12 @@ def candidate_single_swaps(
     signature: tuple[int, int, int, int],
     focus_shifts: list[int],
     fourier_frequencies: list[int],
+    global_top_unique: int,
+    halo_top_unique: int,
+    global_max_cap: int | None,
+    global_penalty_cap: int | None,
+    halo_max_cap: int | None,
+    halo_penalty_cap: int | None,
     endpoint_limit: int,
     swap_pool_limit: int,
     max_score: int | None,
@@ -245,7 +312,22 @@ def candidate_single_swaps(
                 )
                 if max_score is not None and trial_metrics.total_score > max_score:
                     continue
-                objective = objective_for_node(trial_node, focus_shifts, fourier_frequencies)
+                trial_stats = surrogate_stats(trial_node, focus_shifts, global_top_unique, halo_top_unique)
+                if global_max_cap is not None and trial_stats["global_max"] > global_max_cap:
+                    continue
+                if global_penalty_cap is not None and trial_stats["global_penalty"] > global_penalty_cap:
+                    continue
+                if halo_max_cap is not None and trial_stats["halo_max"] > halo_max_cap:
+                    continue
+                if halo_penalty_cap is not None and trial_stats["halo_penalty"] > halo_penalty_cap:
+                    continue
+                objective = objective_for_node(
+                    trial_node,
+                    focus_shifts,
+                    fourier_frequencies,
+                    global_top_unique,
+                    halo_top_unique,
+                )
                 candidates.append((objective, trial_node))
 
     candidates.sort(key=lambda item: item[0])
@@ -267,6 +349,12 @@ def beam_search_repair(
     signature: tuple[int, int, int, int],
     focus_shifts: list[int],
     fourier_frequencies: list[int],
+    global_top_unique: int,
+    halo_top_unique: int,
+    global_max_cap: int | None,
+    global_penalty_cap: int | None,
+    halo_max_cap: int | None,
+    halo_penalty_cap: int | None,
     depth: int,
     beam_width: int,
     endpoint_limit: int,
@@ -277,7 +365,7 @@ def beam_search_repair(
     beam = [root]
     best = root
     best_score = root
-    best_exact = root if objective_for_node(root, focus_shifts, fourier_frequencies)[:2] == (0, 0) else None
+    best_exact = root if objective_for_node(root, focus_shifts, fourier_frequencies, global_top_unique, halo_top_unique)[:2] == (0, 0) else None
     seen: set[bytes] = {root.state.tobytes()}
 
     for _ in range(depth):
@@ -288,6 +376,12 @@ def beam_search_repair(
                 signature,
                 focus_shifts,
                 fourier_frequencies,
+                global_top_unique,
+                halo_top_unique,
+                global_max_cap,
+                global_penalty_cap,
+                halo_max_cap,
+                halo_penalty_cap,
                 endpoint_limit=endpoint_limit,
                 swap_pool_limit=swap_pool_limit,
                 max_score=max_score,
@@ -299,11 +393,11 @@ def beam_search_repair(
                 expanded.append(child)
                 if (
                     child.metrics.total_score,
-                    objective_for_node(child, focus_shifts, fourier_frequencies),
+                    objective_for_node(child, focus_shifts, fourier_frequencies, global_top_unique, halo_top_unique),
                     len(child.history),
                 ) < (
                     best_score.metrics.total_score,
-                    objective_for_node(best_score, focus_shifts, fourier_frequencies),
+                    objective_for_node(best_score, focus_shifts, fourier_frequencies, global_top_unique, halo_top_unique),
                     len(best_score.history),
                 ):
                     best_score = child
@@ -311,10 +405,18 @@ def beam_search_repair(
         if not expanded:
             break
 
-        expanded.sort(key=lambda node: objective_for_node(node, focus_shifts, fourier_frequencies))
+        expanded.sort(
+            key=lambda node: objective_for_node(
+                node,
+                focus_shifts,
+                fourier_frequencies,
+                global_top_unique,
+                halo_top_unique,
+            )
+        )
         beam = expanded[:beam_width]
         for candidate in beam:
-            if objective_for_node(candidate, focus_shifts, fourier_frequencies)[:2] == (0, 0):
+            if objective_for_node(candidate, focus_shifts, fourier_frequencies, global_top_unique, halo_top_unique)[:2] == (0, 0):
                 if best_exact is None or (
                     candidate.metrics.total_score,
                     candidate.metrics.max_shift_violation,
@@ -325,13 +427,25 @@ def beam_search_repair(
                     len(best_exact.history),
                 ):
                     best_exact = candidate
-        if objective_for_node(beam[0], focus_shifts, fourier_frequencies) < objective_for_node(best, focus_shifts, fourier_frequencies):
+        if objective_for_node(
+            beam[0],
+            focus_shifts,
+            fourier_frequencies,
+            global_top_unique,
+            halo_top_unique,
+        ) < objective_for_node(best, focus_shifts, fourier_frequencies, global_top_unique, halo_top_unique):
             best = beam[0]
 
     chosen = best
     if require_focus_zero and best_exact is not None:
         chosen = best_exact
-    elif best_exact is not None and objective_for_node(best_exact, focus_shifts, fourier_frequencies) < objective_for_node(best, focus_shifts, fourier_frequencies):
+    elif best_exact is not None and objective_for_node(
+        best_exact,
+        focus_shifts,
+        fourier_frequencies,
+        global_top_unique,
+        halo_top_unique,
+    ) < objective_for_node(best, focus_shifts, fourier_frequencies, global_top_unique, halo_top_unique):
         chosen = best_exact
 
     return RepairSearchResult(best_focus=chosen, best_score=best_score, best_exact=best_exact)
@@ -351,6 +465,12 @@ def main() -> int:
     parser.add_argument("--focus-top-unique", type=int, default=0)
     parser.add_argument("--fourier-frequencies", type=str, default="")
     parser.add_argument("--fourier-top-unique", type=int, default=0)
+    parser.add_argument("--global-top-unique", type=int, default=0)
+    parser.add_argument("--halo-top-unique", type=int, default=0)
+    parser.add_argument("--global-max-cap", type=int, default=-1)
+    parser.add_argument("--global-penalty-cap", type=int, default=-1)
+    parser.add_argument("--halo-max-cap", type=int, default=-1)
+    parser.add_argument("--halo-penalty-cap", type=int, default=-1)
     parser.add_argument("--depth", type=int, default=4)
     parser.add_argument("--beam-width", type=int, default=48)
     parser.add_argument("--endpoint-limit", type=int, default=12)
@@ -380,6 +500,11 @@ def main() -> int:
     )
     auto_fourier = top_unique_fourier_reps(root.state, args.fourier_top_unique)
     fourier_frequencies = normalize_unique_reps(explicit_fourier + auto_fourier, n)
+    root_stats = surrogate_stats(root, focus_shifts, max(0, args.global_top_unique), max(0, args.halo_top_unique))
+    global_max_cap = None if args.global_max_cap < 0 else int(args.global_max_cap)
+    global_penalty_cap = None if args.global_penalty_cap < 0 else int(args.global_penalty_cap)
+    halo_max_cap = None if args.halo_max_cap < 0 else int(args.halo_max_cap)
+    halo_penalty_cap = None if args.halo_penalty_cap < 0 else int(args.halo_penalty_cap)
 
     max_score = None
     if args.score_slack >= 0:
@@ -389,6 +514,12 @@ def main() -> int:
         signature,
         focus_shifts,
         fourier_frequencies,
+        max(0, args.global_top_unique),
+        max(0, args.halo_top_unique),
+        global_max_cap,
+        global_penalty_cap,
+        halo_max_cap,
+        halo_penalty_cap,
         depth=max(1, args.depth),
         beam_width=max(1, args.beam_width),
         endpoint_limit=max(1, args.endpoint_limit),
@@ -412,6 +543,12 @@ def main() -> int:
         "signature": list(signature),
         "focus_shifts": focus_shifts,
         "fourier_focus_frequencies": fourier_frequencies,
+        "global_top_unique": int(args.global_top_unique),
+        "halo_top_unique": int(args.halo_top_unique),
+        "global_max_cap": None if global_max_cap is None else int(global_max_cap),
+        "global_penalty_cap": None if global_penalty_cap is None else int(global_penalty_cap),
+        "halo_max_cap": None if halo_max_cap is None else int(halo_max_cap),
+        "halo_penalty_cap": None if halo_penalty_cap is None else int(halo_penalty_cap),
         "sds_lambda": int(sds_lambda),
         "repair_depth": int(args.depth),
         "repair_beam_width": int(args.beam_width),
@@ -445,11 +582,22 @@ def main() -> int:
     print(f"focus_shifts={focus_shifts}")
     print(f"sds_lambda={sds_lambda}")
     print(f"fourier_focus_frequencies={fourier_frequencies}")
+    print(f"global_top_unique={max(0, args.global_top_unique)}")
+    print(f"halo_top_unique={max(0, args.halo_top_unique)}")
+    print(f"root_surrogate_stats={root_stats}")
+    print(f"global_max_cap={global_max_cap}")
+    print(f"global_penalty_cap={global_penalty_cap}")
+    print(f"halo_max_cap={halo_max_cap}")
+    print(f"halo_penalty_cap={halo_penalty_cap}")
     print(f"indicator_fourier_target={fourier_target}")
     print(f"indicator_fourier_max_deviation={fourier_max_dev}")
     print(f"max_score={max_score}")
-    print(f"root_objective={objective_for_node(root, focus_shifts, fourier_frequencies)}")
-    print(f"best_objective={objective_for_node(best, focus_shifts, fourier_frequencies)}")
+    print(
+        f"root_objective={objective_for_node(root, focus_shifts, fourier_frequencies, max(0, args.global_top_unique), max(0, args.halo_top_unique))}"
+    )
+    print(
+        f"best_objective={objective_for_node(best, focus_shifts, fourier_frequencies, max(0, args.global_top_unique), max(0, args.halo_top_unique))}"
+    )
     print(f"best_focus_deltas={sds_deltas_for_shifts(best.combined, focus_shifts)}")
     print(f"best_fourier_focus_deviations={best_selected_fourier}")
     print(f"best_score={best.metrics.total_score}")

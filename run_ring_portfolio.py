@@ -177,6 +177,10 @@ def main() -> int:
     parser.add_argument("floor_checkpoint", type=Path)
     parser.add_argument("--output-prefix", type=Path)
     parser.add_argument("--endpoint-limit", type=int, default=20)
+    parser.add_argument("--export-guard-global-top-unique", type=int, default=0)
+    parser.add_argument("--export-guard-halo-top-unique", type=int, default=0)
+    parser.add_argument("--export-guard-global-cap-slack", type=int, default=0)
+    parser.add_argument("--export-guard-halo-cap-slack", type=int, default=0)
     parser.add_argument("--time-limit", type=float, default=20.0)
     parser.add_argument("--promote-count", type=int, default=2)
     parser.add_argument("--repair-depth", type=int, default=6)
@@ -185,6 +189,12 @@ def main() -> int:
     parser.add_argument("--repair-endpoint-limit", type=int, default=20)
     parser.add_argument("--repair-focus-top-unique", type=int, default=12)
     parser.add_argument("--repair-fourier-top-unique", type=int, default=12)
+    parser.add_argument("--repair-global-top-unique", type=int, default=0)
+    parser.add_argument("--repair-halo-top-unique", type=int, default=0)
+    parser.add_argument("--repair-global-max-cap", type=int, default=-1)
+    parser.add_argument("--repair-global-penalty-cap", type=int, default=-1)
+    parser.add_argument("--repair-halo-max-cap", type=int, default=-1)
+    parser.add_argument("--repair-halo-penalty-cap", type=int, default=-1)
     args = parser.parse_args()
 
     workdir = Path.cwd()
@@ -208,6 +218,27 @@ def main() -> int:
             {
                 "floor_checkpoint": str(args.floor_checkpoint),
                 "floor_score": floor_score,
+                "config": {
+                    "endpoint_limit": int(args.endpoint_limit),
+                    "time_limit": float(args.time_limit),
+                    "promote_count": int(args.promote_count),
+                    "export_guard_global_top_unique": int(args.export_guard_global_top_unique),
+                    "export_guard_halo_top_unique": int(args.export_guard_halo_top_unique),
+                    "export_guard_global_cap_slack": int(args.export_guard_global_cap_slack),
+                    "export_guard_halo_cap_slack": int(args.export_guard_halo_cap_slack),
+                    "repair_depth": int(args.repair_depth),
+                    "repair_beam_width": int(args.repair_beam_width),
+                    "repair_swap_pool_limit": int(args.repair_swap_pool_limit),
+                    "repair_endpoint_limit": int(args.repair_endpoint_limit),
+                    "repair_focus_top_unique": int(args.repair_focus_top_unique),
+                    "repair_fourier_top_unique": int(args.repair_fourier_top_unique),
+                    "repair_global_top_unique": int(args.repair_global_top_unique),
+                    "repair_halo_top_unique": int(args.repair_halo_top_unique),
+                    "repair_global_max_cap": int(args.repair_global_max_cap),
+                    "repair_global_penalty_cap": int(args.repair_global_penalty_cap),
+                    "repair_halo_max_cap": int(args.repair_halo_max_cap),
+                    "repair_halo_penalty_cap": int(args.repair_halo_penalty_cap),
+                },
                 "rings": ring_results,
                 "promoted": promoted_items,
             },
@@ -228,6 +259,14 @@ def main() -> int:
                 ",".join(str(v) for v in focus),
                 "--endpoint-limit",
                 str(max(1, args.endpoint_limit)),
+                "--guard-global-top-unique",
+                str(max(0, args.export_guard_global_top_unique)),
+                "--guard-halo-top-unique",
+                str(max(0, args.export_guard_halo_top_unique)),
+                "--guard-global-cap-slack",
+                str(max(0, args.export_guard_global_cap_slack)),
+                "--guard-halo-cap-slack",
+                str(max(0, args.export_guard_halo_cap_slack)),
                 "--output-prefix",
                 str(export_prefix),
             ],
@@ -289,6 +328,18 @@ def main() -> int:
                 ",".join(str(v) for v in promote_focus),
                 "--fourier-frequencies",
                 ",".join(str(v) for v in promote_fourier),
+                "--global-top-unique",
+                str(max(0, args.repair_global_top_unique)),
+                "--halo-top-unique",
+                str(max(0, args.repair_halo_top_unique)),
+                "--global-max-cap",
+                str(int(args.repair_global_max_cap)),
+                "--global-penalty-cap",
+                str(int(args.repair_global_penalty_cap)),
+                "--halo-max-cap",
+                str(int(args.repair_halo_max_cap)),
+                "--halo-penalty-cap",
+                str(int(args.repair_halo_penalty_cap)),
                 "--depth",
                 str(max(1, args.repair_depth)),
                 "--beam-width",
