@@ -417,3 +417,30 @@ Continuity marker:
 
 - next unresolved representative in the current sign-reduced height ordering:
   - `(92, 312, 8)`
+
+## Guard-Schedule Tuning Note
+
+One important correction from this rung:
+
+- `solve_bounded_pb_sqcap.py` used to print `INFEASIBLE` whenever no solution was
+  found inside the time limit
+- that is now fixed so timeout/unknown and real feasibility are not conflated
+
+First useful `2496` guard-schedule result for `mixed_18_18`:
+
+- relaxed guarded export:
+  - `runs/order_668_gs_17-17-9-3_root2496_mixed18_guardv3_pb_ilp.json`
+- with required square-drop:
+  - still no feasible `K` found inside the quick rung
+- with no forced square-drop and `K=4`:
+  - `runs/order_668_gs_17-17-9-3_root2496_mixed18_guardv3_nodrop_retry_K4_4736_final.json`
+  - `best_score = 4736`
+  - `max_shift_violation = 16`
+  - `indicator_fourier_max_deviation = 52`
+
+Practical read:
+
+- the seed-stage guard schedule now has a real two-stage shape:
+  - stage A: guarded no-drop seed shaping
+  - stage B: promotion / local repair tries to cash it out
+- trying to force square-drop too early still over-constrains the seed

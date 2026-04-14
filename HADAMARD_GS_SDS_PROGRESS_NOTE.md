@@ -182,6 +182,20 @@ For the next surrogate upgrade after the `2496` floor:
   - the next rung is staged guard-cap tuning, not just wider rings or more
     Fourier pressure
 
+For the first staged guard-cap tuning pass on the `2496` winner surface:
+
+- baseline winner surface remains `mixed_18_18`
+- forcing square-drop at the first guarded exact stage still over-constrains the
+  seed
+- a relaxed guarded no-drop seed stage is now validated:
+  - `runs/order_668_gs_17-17-9-3_root2496_mixed18_guardv3_nodrop_retry_K4_4736_final.json`
+  - `best_score = 4736`
+  - `pb_ilp_monitored_square_sum = 38`
+- updated read:
+  - the right next schedule is now two-stage:
+    1. guarded no-drop seed shaping
+    2. promotion / local repair from that shaped seed
+
 ## Meaning
 
 The important repo-level change is:

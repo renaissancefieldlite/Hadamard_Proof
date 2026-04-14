@@ -163,6 +163,8 @@ The next movement for this repo is:
 - push coupled defect cancellation on the dominant SDS shift pairs
 - keep the exact repair layer under a hard score cap, but allow blended
   floor-escape slack when a frozen floor has clearly formed
+- use staged guard-cap seed shaping at the PB/ILP export level before forcing
+  square-drop on the active winner family
 - use the corrected PB/ILP ring and hybrid exact-local cycle as the current
   exact rung
 - keep iterating from the `2496` floor instead of restarting from the older

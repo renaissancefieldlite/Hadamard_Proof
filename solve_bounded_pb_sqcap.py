@@ -141,7 +141,17 @@ def solve_lexicographic_square_sum(
     model1.Minimize(square_sum1)
     status1 = solver.Solve(model1)
     if status1 not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        return None
+        return {
+            "status_square": solver.StatusName(status1),
+            "status_flip": None,
+            "solver": None,
+            "x": None,
+            "d": None,
+            "u": None,
+            "M": None,
+            "square_sum": None,
+            "F": None,
+        }
 
     best_sq = int(solver.Value(square_sum1))
     best_M = int(solver.Value(M1))
@@ -159,7 +169,17 @@ def solve_lexicographic_square_sum(
     solver2.parameters.num_search_workers = 8
     status2 = solver2.Solve(model2)
     if status2 not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        return None
+        return {
+            "status_square": solver.StatusName(status1),
+            "status_flip": solver2.StatusName(status2),
+            "solver": None,
+            "x": None,
+            "d": None,
+            "u": None,
+            "M": None,
+            "square_sum": None,
+            "F": None,
+        }
 
     return {
         "status_square": solver.StatusName(status1),
@@ -314,8 +334,16 @@ def main() -> int:
             translation_fix=args.translation_fix,
             time_limit=max(1.0, args.time_limit),
         )
-        if result is None:
-            print(f"K={K} status=INFEASIBLE")
+        if result is None or result["solver"] is None:
+            if result is None:
+                print(f"K={K} status=NO_RESULT")
+            else:
+                status_square = result.get("status_square")
+                status_flip = result.get("status_flip")
+                if status_flip:
+                    print(f"K={K} square_status={status_square} flip_status={status_flip}")
+                else:
+                    print(f"K={K} square_status={status_square}")
             continue
 
         state, flips = reconstruct_state(spec, result)
